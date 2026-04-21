@@ -65,7 +65,7 @@ public sealed class VacationsWriter : IImportWriter
                             && t.TransactionCategories.Any(tc =>
                                 salaryCategoryIds.Contains(tc.Category) && tc.Deleted == 0));
 
-            var workStartUnix = await accrualsQuery.MinAsync(t => (int?)t.Executed, ct);
+            var workStartUnix = await accrualsQuery.MinAsync(t => (int?)t.BudgetDate, ct);
             if (workStartUnix is null)
             {
                 _log.WriteLine($"  skip: нет начислений для '{accountName}'");
@@ -94,7 +94,7 @@ public sealed class VacationsWriter : IImportWriter
             var winEndUnix = AbilityCashValues.StartOfDayUnix(windowEnd) + AbilityCashValues.DaySeconds - 1;
 
             var sumStored = await accrualsQuery
-                .Where(t => t.Executed >= winStartUnix && t.Executed <= winEndUnix)
+                .Where(t => t.BudgetDate >= winStartUnix && t.BudgetDate <= winEndUnix)
                 .SumAsync(t => t.ExpenseAmount ?? 0L, ct);
             var sumStoredAbs = Math.Abs(sumStored);
             if (sumStoredAbs == 0)
@@ -107,7 +107,7 @@ public sealed class VacationsWriter : IImportWriter
             var avgMonth = sumHuman / monthsCount;
             var amount = avgMonth / _cfg.AverageDaysPerMonth * days;
 
-            var executedUnix = AbilityCashValues.StartOfDayUnix(vacStart.AddDays(-_cfg.PreDaysOffset));
+            var dateUnix = AbilityCashValues.StartOfDayUnix(vacStart.AddDays(-_cfg.PreDaysOffset));
 
             var txn = new Transaction
             {
@@ -115,8 +115,8 @@ public sealed class VacationsWriter : IImportWriter
                 Changed = nowUnix,
                 Deleted = 0,
                 Position = 0,
-                BudgetDate = executedUnix,
-                Executed = executedUnix,
+                BudgetDate = dateUnix,
+                Executed = 1,
                 Locked = 0,
                 ExpenseAccount = account.Id,
                 ExpenseAmount = -AbilityCashValues.ToStoredAmount(amount),
@@ -126,7 +126,7 @@ public sealed class VacationsWriter : IImportWriter
                 ExtraComment2 = source,
                 ExtraComment3 = "",
                 ExtraComment4 = "",
-                BudgetPeriodEnd = executedUnix + AbilityCashValues.DaySeconds
+                BudgetPeriodEnd = dateUnix + AbilityCashValues.DaySeconds
             };
 
             txn.TransactionCategories.Add(new TransactionCategory

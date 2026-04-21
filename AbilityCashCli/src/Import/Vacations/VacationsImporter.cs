@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using ExcelDataReader;
 
 namespace AbilityCashCli.Import.Vacations;
@@ -6,6 +7,7 @@ namespace AbilityCashCli.Import.Vacations;
 public sealed class VacationsImporter : IImporter
 {
     private static readonly string[] DateFormats = ["dd.MM.yyyy", "d.M.yyyy", "dd.M.yyyy", "d.MM.yyyy"];
+    private static readonly Regex DotSpaceRegex = new(@"\.\s+", RegexOptions.Compiled);
 
     public IReadOnlyList<ImportRecord> Read(string path)
     {
@@ -35,7 +37,7 @@ public sealed class VacationsImporter : IImporter
         var records = new List<ImportRecord>();
         while (reader.Read())
         {
-            var person = NormalizeString(reader.GetValue(personCol));
+            var person = NormalizePersonName(reader.GetValue(personCol));
             if (string.IsNullOrEmpty(person)) continue;
 
             var rawDates = NormalizeString(reader.GetValue(datesCol));
@@ -92,4 +94,7 @@ public sealed class VacationsImporter : IImporter
             string s => s.Trim(),
             _ => value.ToString()?.Trim() ?? ""
         };
+
+    private static string NormalizePersonName(object? value) =>
+        DotSpaceRegex.Replace(NormalizeString(value), ".");
 }

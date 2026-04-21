@@ -1,3 +1,4 @@
+using AbilityCashCli.Cli;
 using AbilityCashCli.Data;
 
 namespace AbilityCashCli.Import;
@@ -7,97 +8,94 @@ public sealed class BulkImportRunner
     private readonly AppDbContext _db;
     private readonly IImportRouter _router;
     private readonly IImportArchiver _archiver;
-    private readonly TextWriter _log;
+    private readonly ImportReportWriter _report;
 
     public BulkImportRunner(
         AppDbContext db,
         IImportRouter router,
         IImportArchiver archiver,
-        TextWriter log)
+        ImportReportWriter report)
     {
         _db = db;
         _router = router;
         _archiver = archiver;
-        _log = log;
+        _report = report;
     }
 
     public async Task<Summary> RunAsync(IEnumerable<string> files, CancellationToken ct = default)
     {
         var imported = new List<string>();
         var skipped = new List<(string Path, string Reason)>();
-        var errored = new List<(string Path, string Reason)>();
+        var erroredFiles = new List<string>();
 
         await using var trx = await _db.Database.BeginTransactionAsync(ct);
 
         foreach (var path in files)
         {
+            var source = Path.GetFileName(path);
             var rule = _router.Resolve(path);
             if (rule is null)
             {
                 skipped.Add((path, "нет importer'а"));
-                _log.WriteLine($"skip (нет importer'а): {path}");
+                _report.Skip(path, "нет importer'а");
                 continue;
             }
 
+            RuleResult result;
             try
             {
-                var source = Path.GetFileName(path);
-                var (rows, saved) = await rule.ExecuteAsync(source, path, ct);
-                if (rows == 0)
-                {
-                    skipped.Add((path, "пусто"));
-                    _log.WriteLine($"skip (пусто): {path}");
-                    continue;
-                }
-
-                _log.WriteLine($"ok: {path} (rows={rows}, saved={saved})");
-                imported.Add(path);
+                result = await rule.ExecuteAsync(source, path, ct);
             }
             catch (Exception ex)
             {
-                errored.Add((path, ex.Message));
-                WriteError($"error: {path} :: {ex}");
+                var fatal = new[] { new ImportError(source, null, "parse", ex.Message) };
+                _report.FileErrors(path, fatal);
+                erroredFiles.Add(path);
+                continue;
             }
+
+            if (result.Errors.Count > 0)
+            {
+                _report.FileErrors(path, result.Errors);
+                erroredFiles.Add(path);
+                continue;
+            }
+
+            if (result.RowsRead == 0)
+            {
+                skipped.Add((path, "пусто"));
+                _report.Skip(path, "пусто");
+                continue;
+            }
+
+            imported.Add(path);
+            _report.Ok(path, result.RowsRead, result.RowsSaved);
         }
 
-        if (errored.Count == 0)
+        if (erroredFiles.Count == 0)
         {
             await trx.CommitAsync(ct);
             foreach (var p in imported)
             {
                 var archived = _archiver.Archive(p);
-                _log.WriteLine($"archived: {p} -> {archived}");
+                _report.Info($"archived: {p} -> {archived}");
             }
         }
         else
         {
-            WriteError("Есть ошибки — транзакция откатывается, архивация пропущена.");
+            _report.RollbackNotice();
         }
 
-        _log.WriteLine();
-        _log.WriteLine($"Summary: imported={imported.Count}, skipped={skipped.Count}, errored={errored.Count}");
+        _report.BlankLine();
+        _report.Info($"Summary: imported={imported.Count}, skipped={skipped.Count}, errored={erroredFiles.Count}");
         foreach (var p in imported)
-            _log.WriteLine($"  imported: {Path.GetFileName(p)}");
+            _report.Info($"  imported: {Path.GetFileName(p)}");
         foreach (var (p, reason) in skipped)
-            _log.WriteLine($"  skipped:  {Path.GetFileName(p)} ({reason})");
-        foreach (var (p, reason) in errored)
-            WriteError($"  errored:  {Path.GetFileName(p)} ({reason})");
+            _report.Info($"  skipped:  {Path.GetFileName(p)} ({reason})");
+        foreach (var p in erroredFiles)
+            _report.ErrorLine($"  errored:  {Path.GetFileName(p)}");
 
-        return new Summary(imported.Count, skipped.Count, errored.Count);
-    }
-
-    private static void WriteError(string message)
-    {
-        var prev = Console.ForegroundColor;
-        Console.ForegroundColor = ConsoleColor.Red;
-        try
-        {
-            Console.Error.WriteLine(message);
-        }
-        finally
-        {
-            Console.ForegroundColor = prev;
-        }
+        return new Summary(imported.Count, skipped.Count, erroredFiles.Count);
     }
 
     public sealed record Summary(int Imported, int Skipped, int Errored);

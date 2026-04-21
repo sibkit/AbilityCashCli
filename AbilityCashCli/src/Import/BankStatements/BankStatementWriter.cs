@@ -21,18 +21,27 @@ public sealed class BankStatementWriter
         _importerType = importerType;
     }
 
-    public async Task<int> WriteAsync(string source, IReadOnlyList<AlfaBankRecord> records, CancellationToken ct = default)
+    public async Task<WriterResult> WriteAsync(string source, IReadOnlyList<AlfaBankRecord> records, CancellationToken ct = default)
     {
-        if (records.Count == 0) return 0;
+        if (records.Count == 0) return new WriterResult(0, Array.Empty<ImportError>());
+
+        var errors = new List<ImportError>();
 
         var rch = records[0].Rch;
         var map = _cfg.AccountByRch;
         if (map is null || !map.TryGetValue(rch, out var accountName) || string.IsNullOrWhiteSpace(accountName))
-            throw new InvalidOperationException(
-                $"Нет маппинга для Rch '{rch}' в BankStatements.AccountByRch.");
+        {
+            errors.Add(new ImportError(source, null, "resolve",
+                $"Нет маппинга для Rch '{rch}' в BankStatements.AccountByRch."));
+            return new WriterResult(0, errors);
+        }
 
-        var account = await _db.Accounts.FirstOrDefaultAsync(a => a.Name == accountName && !a.Deleted, ct)
-                      ?? throw new InvalidOperationException($"Счёт '{accountName}' не найден.");
+        var account = await _db.Accounts.FirstOrDefaultAsync(a => a.Name == accountName && !a.Deleted, ct);
+        if (account is null)
+        {
+            errors.Add(new ImportError(source, null, "resolve", $"Счёт '{accountName}' не найден."));
+            return new WriterResult(0, errors);
+        }
 
         var nowUnix = AbilityCashValues.NowUnix();
         var holderUnix = records.Min(r => AbilityCashValues.StartOfDayUnix(r.Date));
@@ -94,8 +103,8 @@ public sealed class BankStatementWriter
         }
 
         _db.TransactionGroups.Add(group);
-
-        return await _db.SaveChangesAsync(ct);
+        var saved = await _db.SaveChangesAsync(ct);
+        return new WriterResult(saved, errors);
     }
 
     private static string Normalize(string value) =>

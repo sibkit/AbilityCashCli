@@ -19,7 +19,8 @@
       "Bash(dotnet ef *)",
       "Bash(dotnet run *)",
       "Bash(python *)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(xargs grep *)"
     ]
   }
 }

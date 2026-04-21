@@ -27,14 +27,31 @@ public sealed class VacationsWriter : IImportWriter
         _importerType = importerType;
     }
 
-    public async Task<int> WriteAsync(string source, IReadOnlyList<ImportRecord> records, CancellationToken ct = default)
+    public async Task<WriterResult> WriteAsync(string source, IReadOnlyList<ImportRecord> records, CancellationToken ct = default)
     {
-        if (records.Count == 0) return 0;
+        if (records.Count == 0) return new WriterResult(0, Array.Empty<ImportError>());
 
-        var vacationCategoryId = _resolver.Resolve(_cfg.VacationCategoryPath);
-        var salaryCategoryIds = _cfg.SalaryCategoryPaths.Select(_resolver.Resolve).ToHashSet();
+        var errors = new List<ImportError>();
+
+        if (!_resolver.TryResolve(_cfg.VacationCategoryPath, out var vacationCategoryId, out var vacErr))
+        {
+            errors.Add(new ImportError(source, null, "resolve", vacErr!));
+            return new WriterResult(0, errors);
+        }
+
+        var salaryCategoryIds = new HashSet<int>();
+        foreach (var path in _cfg.SalaryCategoryPaths)
+        {
+            if (_resolver.TryResolve(path, out var id, out var err))
+                salaryCategoryIds.Add(id);
+            else
+                errors.Add(new ImportError(source, null, "resolve", err!));
+        }
         if (salaryCategoryIds.Count == 0)
-            throw new InvalidOperationException("VacationConfig.SalaryCategoryPaths пуст.");
+        {
+            errors.Add(new ImportError(source, null, "resolve", "VacationConfig.SalaryCategoryPaths пуст или не разрешился."));
+            return new WriterResult(0, errors);
+        }
 
         var nowUnix = AbilityCashValues.NowUnix();
         var maxPos = await _db.TransactionGroups
@@ -53,14 +70,17 @@ public sealed class VacationsWriter : IImportWriter
 
         var extra = AbilityCashValues.BuildSourceComment(source, _importerType);
 
-        foreach (var r in records)
+        for (var i = 0; i < records.Count; i++)
         {
+            var r = records[i];
+            var row = i + 1;
+
             var accountName = _cfg.SalaryAccountPrefix + r.Person;
             var account = await _db.Accounts
                 .FirstOrDefaultAsync(a => a.Name == accountName && !a.Deleted, ct);
             if (account is null)
             {
-                _log.WriteLine($"  skip: счёт '{accountName}' не найден");
+                errors.Add(new ImportError(source, row, "resolve", $"Счёт '{accountName}' не найден."));
                 continue;
             }
 
@@ -150,10 +170,10 @@ public sealed class VacationsWriter : IImportWriter
         }
 
         if (group.Transactions.Count == 0)
-            return 0;
+            return new WriterResult(0, errors);
 
         _db.TransactionGroups.Add(group);
-
-        return await _db.SaveChangesAsync(ct);
+        var saved = await _db.SaveChangesAsync(ct);
+        return new WriterResult(saved, errors);
     }
 }

@@ -23,28 +23,25 @@ public sealed class CashPayoutsWriter : IImportWriter
             throw new InvalidOperationException($"CashPayouts.DefaultTime '{cfg.DefaultTime}' не распарсился (ожидается 'HH:mm').");
     }
 
-    public async Task<int> WriteAsync(string source, IReadOnlyList<ImportRecord> records, CancellationToken ct = default)
+    public async Task<WriterResult> WriteAsync(string source, IReadOnlyList<ImportRecord> records, CancellationToken ct = default)
     {
-        if (records.Count == 0) return 0;
+        if (records.Count == 0) return new WriterResult(0, Array.Empty<ImportError>());
 
         var nowUnix = AbilityCashValues.NowUnix();
-
+        var errors = new List<ImportError>();
         var resolved = new List<(ImportRecord Record, Account Src, Account Dst, int BudgetDate)>();
         var sourceCache = new Dictionary<string, Account>(StringComparer.Ordinal);
 
-        foreach (var r in records)
+        for (var i = 0; i < records.Count; i++)
         {
-            var route = ResolveRoute(r.Comment);
-            var src = await GetAccountAsync(sourceCache, route.SourceAccount, ct);
-            var dstName = _cfg.SalaryAccountPrefix + r.Person;
-            var dst = await _db.Accounts.FirstOrDefaultAsync(a => a.Name == dstName && !a.Deleted, ct)
-                      ?? throw new InvalidOperationException($"Счёт назначения '{dstName}' не найден.");
-
-            var dateTime = r.Date.TimeOfDay == TimeSpan.Zero ? r.Date.Date + _defaultTime : r.Date;
-            var budgetDate = AbilityCashValues.ToUnix(dateTime);
-
-            resolved.Add((r, src, dst, budgetDate));
+            var r = records[i];
+            var row = i + 1;
+            var err = await TryResolveRowAsync(source, row, r, sourceCache, resolved, ct);
+            if (err is not null) errors.Add(err);
         }
+
+        if (resolved.Count == 0)
+            return new WriterResult(0, errors);
 
         var holderUnix = resolved.Min(x => x.BudgetDate);
         var maxPos = await _db.TransactionGroups
@@ -90,24 +87,53 @@ public sealed class CashPayoutsWriter : IImportWriter
         }
 
         _db.TransactionGroups.Add(group);
-
-        return await _db.SaveChangesAsync(ct);
+        var saved = await _db.SaveChangesAsync(ct);
+        return new WriterResult(saved, errors);
     }
 
-    private CashPayoutRoute ResolveRoute(string? comment)
+    private async Task<ImportError?> TryResolveRowAsync(
+        string source,
+        int row,
+        ImportRecord r,
+        Dictionary<string, Account> sourceCache,
+        List<(ImportRecord, Account, Account, int)> resolved,
+        CancellationToken ct)
+    {
+        var route = ResolveRoute(r.Comment);
+        if (route is null)
+            return new ImportError(source, row, "resolve",
+                $"Не найден route для комментария '{(r.Comment ?? string.Empty).Trim()}'.");
+
+        var src = await GetAccountAsync(sourceCache, route.SourceAccount, ct);
+        if (src is null)
+            return new ImportError(source, row, "resolve", $"Счёт источника '{route.SourceAccount}' не найден.");
+
+        var dstName = _cfg.SalaryAccountPrefix + r.Person;
+        var dst = await _db.Accounts.FirstOrDefaultAsync(a => a.Name == dstName && !a.Deleted, ct);
+        if (dst is null)
+            return new ImportError(source, row, "resolve", $"Счёт назначения '{dstName}' не найден.");
+
+        var dateTime = r.Date.TimeOfDay == TimeSpan.Zero ? r.Date.Date + _defaultTime : r.Date;
+        var budgetDate = AbilityCashValues.ToUnix(dateTime);
+
+        resolved.Add((r, src, dst, budgetDate));
+        return null;
+    }
+
+    private CashPayoutRoute? ResolveRoute(string? comment)
     {
         var key = (comment ?? "").Trim();
         foreach (var route in _cfg.Routes)
             if (string.Equals(route.Comment.Trim(), key, StringComparison.OrdinalIgnoreCase))
                 return route;
-        throw new InvalidOperationException($"Не найден route для комментария '{key}'.");
+        return null;
     }
 
-    private async Task<Account> GetAccountAsync(Dictionary<string, Account> cache, string name, CancellationToken ct)
+    private async Task<Account?> GetAccountAsync(Dictionary<string, Account> cache, string name, CancellationToken ct)
     {
         if (cache.TryGetValue(name, out var cached)) return cached;
-        var acc = await _db.Accounts.FirstOrDefaultAsync(a => a.Name == name && !a.Deleted, ct)
-                  ?? throw new InvalidOperationException($"Счёт источника '{name}' не найден.");
+        var acc = await _db.Accounts.FirstOrDefaultAsync(a => a.Name == name && !a.Deleted, ct);
+        if (acc is null) return null;
         cache[name] = acc;
         return acc;
     }

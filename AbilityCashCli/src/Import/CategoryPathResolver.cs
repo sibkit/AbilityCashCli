@@ -17,12 +17,28 @@ public sealed class CategoryPathResolver
 
     public int Resolve(string path)
     {
+        if (TryResolve(path, out var id, out var error))
+            return id;
+        throw new InvalidOperationException(error);
+    }
+
+    public bool TryResolve(string path, out int id, out string? error)
+    {
+        id = 0;
+        error = null;
+
         if (_cache.TryGetValue(path, out var cached))
-            return cached;
+        {
+            id = cached;
+            return true;
+        }
 
         var parts = path.Split(_separator, StringSplitOptions.None);
         if (parts.Length == 0 || parts.Any(string.IsNullOrEmpty))
-            throw new InvalidOperationException($"Пустой путь категории: '{path}'.");
+        {
+            error = $"Пустой путь категории: '{path}'.";
+            return false;
+        }
 
         int? parent = null;
         Category? current = null;
@@ -33,12 +49,16 @@ public sealed class CategoryPathResolver
                 : _db.Categories.FirstOrDefault(c => c.Parent == parent && c.Name == part && c.Deleted == 0);
 
             if (current is null)
-                throw new InvalidOperationException($"Категория не найдена по пути '{path}' (часть '{part}').");
+            {
+                error = $"Категория не найдена по пути '{path}' (часть '{part}').";
+                return false;
+            }
 
             parent = current.Id;
         }
 
-        _cache[path] = current!.Id;
-        return current.Id;
+        id = current!.Id;
+        _cache[path] = id;
+        return true;
     }
 }

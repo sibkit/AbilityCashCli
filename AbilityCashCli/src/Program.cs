@@ -107,7 +107,8 @@ static async Task<int> RunImportAsync(AppConfig config, IReadOnlyList<string> fi
     IImportRouter router = new ImportRouter(new IImportRule[] { cashRule, vacRule, tbankRule, alfaRule, timesheetRule });
     IImportArchiver archiver = new FolderImportArchiver(Path.Combine(AppContext.BaseDirectory, ArchiveFolderName));
 
-    var runner = new BulkImportRunner(db, router, archiver, Console.Out);
+    var report = new ImportReportWriter(Console.Out, useConsoleColors: true);
+    var runner = new BulkImportRunner(db, router, archiver, report);
     await runner.RunAsync(files);
     return 0;
 }

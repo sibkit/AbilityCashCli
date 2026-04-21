@@ -27,11 +27,18 @@ public sealed class TimesheetWriter : IImportWriter
         _importerType = importerType;
     }
 
-    public async Task<int> WriteAsync(string source, IReadOnlyList<ImportRecord> records, CancellationToken ct = default)
+    public async Task<WriterResult> WriteAsync(string source, IReadOnlyList<ImportRecord> records, CancellationToken ct = default)
     {
-        if (records.Count == 0) return 0;
+        if (records.Count == 0) return new WriterResult(0, Array.Empty<ImportError>());
 
-        var categoryId = _resolver.Resolve(_cfg.SalaryCategoryPath);
+        var errors = new List<ImportError>();
+
+        if (!_resolver.TryResolve(_cfg.SalaryCategoryPath, out var categoryId, out var categoryErr))
+        {
+            errors.Add(new ImportError(source, null, "resolve", categoryErr!));
+            return new WriterResult(0, errors);
+        }
+
         var salaryByPerson = _salaries.ToDictionary(s => s.Person, s => s.Amount, StringComparer.Ordinal);
 
         var nowUnix = AbilityCashValues.NowUnix();
@@ -54,14 +61,24 @@ public sealed class TimesheetWriter : IImportWriter
 
         var extra = AbilityCashValues.BuildSourceComment(source, _importerType);
 
-        foreach (var r in records)
+        for (var i = 0; i < records.Count; i++)
         {
+            var r = records[i];
+            var row = i + 1;
+
             if (!salaryByPerson.TryGetValue(r.Person, out var salary))
-                throw new InvalidOperationException($"В Salaries нет оклада для '{r.Person}'.");
+            {
+                errors.Add(new ImportError(source, row, "resolve", $"В Salaries нет оклада для '{r.Person}'."));
+                continue;
+            }
 
             var accountName = _cfg.SalaryAccountPrefix + r.Person;
-            var account = await _db.Accounts.FirstOrDefaultAsync(a => a.Name == accountName && !a.Deleted, ct)
-                          ?? throw new InvalidOperationException($"Счёт '{accountName}' не найден.");
+            var account = await _db.Accounts.FirstOrDefaultAsync(a => a.Name == accountName && !a.Deleted, ct);
+            if (account is null)
+            {
+                errors.Add(new ImportError(source, row, "resolve", $"Счёт '{accountName}' не найден."));
+                continue;
+            }
 
             var amount = Math.Round(salary * r.Amount, 2, MidpointRounding.AwayFromZero);
             var stored = AbilityCashValues.ToStoredAmount(amount);
@@ -97,8 +114,11 @@ public sealed class TimesheetWriter : IImportWriter
             group.Transactions.Add(txn);
         }
 
-        _db.TransactionGroups.Add(group);
+        if (group.Transactions.Count == 0)
+            return new WriterResult(0, errors);
 
-        return await _db.SaveChangesAsync(ct);
+        _db.TransactionGroups.Add(group);
+        var saved = await _db.SaveChangesAsync(ct);
+        return new WriterResult(saved, errors);
     }
 }

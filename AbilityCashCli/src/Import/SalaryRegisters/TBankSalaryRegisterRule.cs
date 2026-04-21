@@ -18,11 +18,11 @@ public sealed class TBankSalaryRegisterRule : IImportRule
         return TBankSalaryRegisterImporter.HasHeader(path);
     }
 
-    public async Task<(int RowsRead, int RowsSaved)> ExecuteAsync(string source, string path, CancellationToken ct = default)
+    public async Task<RuleResult> ExecuteAsync(string source, string path, CancellationToken ct = default)
     {
         var records = _importer.Read(path);
-        if (records.Count == 0) return (0, 0);
-        var saved = await _writer.WriteAsync(source, records, ct);
-        return (records.Count, saved);
+        if (records.Count == 0) return new RuleResult(0, 0, Array.Empty<ImportError>());
+        var result = await _writer.WriteAsync(source, records, ct);
+        return new RuleResult(records.Count, result.Saved, result.Errors);
     }
 }

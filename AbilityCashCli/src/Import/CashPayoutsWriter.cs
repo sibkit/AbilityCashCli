@@ -76,7 +76,7 @@ public sealed class CashPayoutsWriter : IImportWriter
                 IncomeAccount = dst.Id,
                 IncomeAmount = stored,
                 Quantity = AbilityCashValues.QuantityOne,
-                Comment = r.Person,
+                Comment = r.Comment,
                 ExtraComment1 = "",
                 ExtraComment2 = source,
                 ExtraComment3 = "",

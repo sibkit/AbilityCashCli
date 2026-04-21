@@ -4,23 +4,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AbilityCashCli.Import;
 
-public sealed class TransactionWriter
+public sealed class CashPayoutsWriter : IImportWriter
 {
     private readonly AppDbContext _db;
+    private readonly string _accountName;
 
-    public TransactionWriter(AppDbContext db)
+    public CashPayoutsWriter(AppDbContext db, string accountName)
     {
         _db = db;
+        _accountName = accountName;
     }
 
-    public async Task<int> WriteAsync(string accountName, string source, IReadOnlyList<ImportRecord> records, CancellationToken ct = default)
+    public async Task<int> WriteAsync(string source, IReadOnlyList<ImportRecord> records, CancellationToken ct = default)
     {
         if (records.Count == 0) return 0;
 
         var account = await _db.Accounts
-            .FirstOrDefaultAsync(a => a.Name == accountName && !a.Deleted, ct);
+            .FirstOrDefaultAsync(a => a.Name == _accountName && !a.Deleted, ct);
         if (account is null)
-            throw new InvalidOperationException($"Счёт '{accountName}' не найден в Accounts.Name (или помечен Deleted).");
+            throw new InvalidOperationException($"Счёт '{_accountName}' не найден в Accounts.Name (или помечен Deleted).");
 
         var holderUnix = records.Min(r => AbilityCashValues.StartOfDayUnix(r.Date));
         var nowUnix = AbilityCashValues.NowUnix();

@@ -4,6 +4,7 @@ using AbilityCashCli.Configuration;
 using AbilityCashCli.Data;
 using AbilityCashCli.Import;
 using AbilityCashCli.Import.Rules;
+using AbilityCashCli.Import.Vacations;
 using Microsoft.EntityFrameworkCore;
 
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -64,16 +65,19 @@ static async Task<int> RunImportAsync(AppConfig config, IReadOnlyList<string> fi
 
     await using var db = new AppDbContext(options);
 
-    var rules = new IImportRule[]
-    {
-        new CashPayoutsRule(new CashPayoutsImporter())
-    };
-    IImportRouter router = new ImportRouter(rules);
-    var writer = new TransactionWriter(db);
+    var cashRule = new CashPayoutsRule(
+        new CashPayoutsImporter(),
+        new CashPayoutsWriter(db, config.ImportAccountName));
+
+    var vacResolver = new CategoryPathResolver(db, config.Vacation.CategoryPathSeparator);
+    var vacRule = new VacationsRule(
+        new VacationsImporter(),
+        new VacationsWriter(db, config.Vacation, vacResolver, Console.Out));
+
+    IImportRouter router = new ImportRouter(new IImportRule[] { cashRule, vacRule });
     IImportArchiver archiver = new FolderImportArchiver(Path.Combine(AppContext.BaseDirectory, ArchiveFolderName));
 
-    var runner = new BulkImportRunner(router, writer, archiver, Console.Out);
-    var imported = await runner.RunAsync(files, config.ImportAccountName);
-    Console.WriteLine($"Импортировано файлов: {imported}/{files.Count}");
+    var runner = new BulkImportRunner(router, archiver, Console.Out);
+    await runner.RunAsync(files);
     return 0;
 }

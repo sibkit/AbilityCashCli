@@ -1,14 +1,14 @@
 using System.Text.RegularExpressions;
 
-namespace AbilityCashCli.Import.Rules;
+namespace AbilityCashCli.Import.Vacations;
 
-public sealed class CashPayoutsRule : IImportRule
+public sealed class VacationsRule : IImportRule
 {
     private static readonly Regex Pattern = new(
-        @"^Выплаты наличные.*\.xls$",
+        @"^Отпуска.*\.xlsx$",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    public CashPayoutsRule(IImporter importer, IImportWriter writer)
+    public VacationsRule(IImporter importer, IImportWriter writer)
     {
         Importer = importer;
         Writer = writer;

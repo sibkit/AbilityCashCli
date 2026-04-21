@@ -9,11 +9,11 @@ public sealed class ImportRouter : IImportRouter
         _rules = rules.ToList();
     }
 
-    public IImporter? Resolve(string path)
+    public IImportRule? Resolve(string path)
     {
         foreach (var rule in _rules)
             if (rule.Matches(path))
-                return rule.Importer;
+                return rule;
         return null;
     }
 }

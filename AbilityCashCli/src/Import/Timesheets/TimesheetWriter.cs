@@ -42,24 +42,12 @@ public sealed class TimesheetWriter : IImportWriter
         var salaryByPerson = _salaries.ToDictionary(s => s.Person, s => s.Amount, StringComparer.Ordinal);
 
         var nowUnix = AbilityCashValues.NowUnix();
-        var budgetDate = AbilityCashValues.ToUnix(records[0].Date);
+        var budgetDate = AbilityCashValues.StartOfDayUnix(records[0].Date);
         var budgetPeriodEnd = budgetDate + AbilityCashValues.DaySeconds;
 
-        var maxPos = await _db.TransactionGroups
-            .Where(g => g.HolderDateTime == budgetDate)
-            .MaxAsync(g => (int?)g.Position, ct);
-        var position = (maxPos ?? -1) + 1;
-
-        var group = new TransactionGroup
-        {
-            Guid = AbilityCashValues.NewGuidBytes(),
-            Changed = nowUnix,
-            Deleted = 0,
-            HolderDateTime = budgetDate,
-            Position = position
-        };
-
+        var groups = new TransactionGroupAllocator(_db, nowUnix);
         var extra = AbilityCashValues.BuildSourceComment(source, _importerType);
+        var added = 0;
 
         for (var i = 0; i < records.Count; i++)
         {
@@ -111,13 +99,14 @@ public sealed class TimesheetWriter : IImportWriter
                 Category = categoryId
             });
 
+            var group = await groups.NewGroupAsync(budgetDate, ct);
             group.Transactions.Add(txn);
+            added++;
         }
 
-        if (group.Transactions.Count == 0)
+        if (added == 0)
             return new WriterResult(0, errors);
 
-        _db.TransactionGroups.Add(group);
         var saved = await _db.SaveChangesAsync(ct);
         return new WriterResult(saved, errors);
     }

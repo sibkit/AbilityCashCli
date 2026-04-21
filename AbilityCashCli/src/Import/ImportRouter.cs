@@ -2,18 +2,32 @@ namespace AbilityCashCli.Import;
 
 public sealed class ImportRouter : IImportRouter
 {
-    private readonly IReadOnlyList<IImportRule> _rules;
+    private readonly IReadOnlyList<IImportHandler> _handlers;
 
-    public ImportRouter(IEnumerable<IImportRule> rules)
+    public ImportRouter(IEnumerable<IImportHandler> handlers)
     {
-        _rules = rules.ToList();
+        _handlers = handlers.ToList();
     }
 
-    public IImportRule? Resolve(string path)
+    public async Task<HandlerResult?> ImportAsync(string source, string path, CancellationToken ct = default)
     {
-        foreach (var rule in _rules)
-            if (rule.Matches(path))
-                return rule;
+        var tried = new HashSet<IImportHandler>();
+
+        foreach (var handler in _handlers)
+        {
+            if (!handler.MatchesByName(path)) continue;
+            tried.Add(handler);
+            var result = await handler.TryImportAsync(source, path, ct);
+            if (result is not null) return result;
+        }
+
+        foreach (var handler in _handlers)
+        {
+            if (tried.Contains(handler)) continue;
+            var result = await handler.TryImportAsync(source, path, ct);
+            if (result is not null) return result;
+        }
+
         return null;
     }
 }

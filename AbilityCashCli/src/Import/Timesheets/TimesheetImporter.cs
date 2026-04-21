@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using AbilityCashCli.Configuration;
 using ExcelDataReader;
 
 namespace AbilityCashCli.Import.Timesheets;
@@ -26,14 +25,10 @@ public sealed class TimesheetImporter : IImporter
     private static readonly Regex YearRegex = new(@"\b(\d{4})\b", RegexOptions.Compiled);
 
     private readonly PersonNameNormalizer _nameNormalizer;
-    private readonly TimeSpan _defaultTime;
 
-    public TimesheetImporter(PersonNameNormalizer nameNormalizer, TimesheetConfig cfg)
+    public TimesheetImporter(PersonNameNormalizer nameNormalizer)
     {
         _nameNormalizer = nameNormalizer;
-        if (!TimeSpan.TryParseExact(cfg.DefaultTime, @"h\:mm", CultureInfo.InvariantCulture, out _defaultTime)
-            && !TimeSpan.TryParseExact(cfg.DefaultTime, @"hh\:mm", CultureInfo.InvariantCulture, out _defaultTime))
-            throw new InvalidOperationException($"Timesheet.DefaultTime '{cfg.DefaultTime}' не распарсился (ожидается 'HH:mm').");
     }
 
     public IReadOnlyList<ImportRecord> Read(string path)
@@ -41,7 +36,7 @@ public sealed class TimesheetImporter : IImporter
         var fileName = Path.GetFileNameWithoutExtension(path);
         var (month, year, monthName) = ParseMonthYear(fileName);
         var lastDay = DateTime.DaysInMonth(year, month);
-        var operationDate = new DateTime(year, month, lastDay) + _defaultTime;
+        var operationDate = new DateTime(year, month, lastDay);
 
         using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         using var reader = ExcelReaderFactory.CreateReader(stream);

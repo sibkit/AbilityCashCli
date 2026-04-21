@@ -1,6 +1,5 @@
 using AbilityCashCli.Data;
 using AbilityCashCli.Data.Entities;
-using Microsoft.EntityFrameworkCore;
 
 namespace AbilityCashCli.Import.BankStatements;
 
@@ -23,21 +22,7 @@ public sealed class BankStatementWriter
         if (rows.Count == 0) return new WriterResult(0, Array.Empty<ImportError>());
 
         var nowUnix = AbilityCashValues.NowUnix();
-        var holderUnix = rows.Min(r => AbilityCashValues.StartOfDayUnix(r.Date));
-        var maxPos = await _db.TransactionGroups
-            .Where(g => g.HolderDateTime == holderUnix)
-            .MaxAsync(g => (int?)g.Position, ct);
-        var position = (maxPos ?? -1) + 1;
-
-        var group = new TransactionGroup
-        {
-            Guid = AbilityCashValues.NewGuidBytes(),
-            Changed = nowUnix,
-            Deleted = 0,
-            HolderDateTime = holderUnix,
-            Position = position
-        };
-
+        var groups = new TransactionGroupAllocator(_db, nowUnix);
         var extra2 = AbilityCashValues.BuildSourceComment(source, importerType);
 
         foreach (var r in rows)
@@ -45,6 +30,8 @@ public sealed class BankStatementWriter
             var stored = AbilityCashValues.ToStoredAmount(Math.Abs(r.Amount));
             var budgetDate = AbilityCashValues.StartOfDayUnix(r.Date);
             var extra1 = $"№{r.Number} от {r.ODate:dd.MM.yyyy}, ИНН {r.CounterpartyInn}";
+
+            var group = await groups.NewGroupAsync(budgetDate, ct);
 
             var txn = new Transaction
             {
@@ -78,7 +65,6 @@ public sealed class BankStatementWriter
             group.Transactions.Add(txn);
         }
 
-        _db.TransactionGroups.Add(group);
         var saved = await _db.SaveChangesAsync(ct);
         return new WriterResult(saved, Array.Empty<ImportError>());
     }

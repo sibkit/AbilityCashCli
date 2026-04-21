@@ -1,4 +1,4 @@
-xnj {
+{
   "permissions": {
     "allow": [
       "Read(//c/Users/sibkit/.local/bin/**)",
@@ -20,7 +20,10 @@ xnj {
       "Bash(dotnet run *)",
       "Bash(python *)",
       "Bash(git *)",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(rm D:/Dev/cs/projects/AbilityCashCli/AbilityCashCli/src/Import/Rules/CashPayoutsRule.cs)",
+      "Bash(rmdir D:/Dev/cs/projects/AbilityCashCli/AbilityCashCli/src/Import/Rules)",
+      "Bash(sqlite3 --version)"
     ]
   }
 }

@@ -27,7 +27,6 @@ public sealed record AppConfig
         CashPayouts = new CashPayoutsConfig
         {
             SalaryAccountPrefix = "",
-            DefaultTime = "13:00",
             Routes = Array.Empty<CashPayoutRoute>()
         },
         Vacation = new VacationConfig
@@ -42,14 +41,12 @@ public sealed record AppConfig
         Enterprises = Array.Empty<EnterpriseConfig>(),
         SalaryRegisters = new SalaryRegistersConfig
         {
-            SalaryAccountPrefix = "",
-            DefaultTime = "14:00"
+            SalaryAccountPrefix = ""
         },
         Timesheet = new TimesheetConfig
         {
             SalaryAccountPrefix = "",
-            SalaryCategoryPath = "",
-            DefaultTime = "12:00"
+            SalaryCategoryPath = ""
         },
         Salaries = Array.Empty<SalaryConfig>(),
         PersonAliases = Array.Empty<PersonNameAliasConfig>()

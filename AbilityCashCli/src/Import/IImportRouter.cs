@@ -2,5 +2,5 @@ namespace AbilityCashCli.Import;
 
 public interface IImportRouter
 {
-    IImportRule? Resolve(string path);
+    Task<HandlerResult?> ImportAsync(string source, string path, CancellationToken ct = default);
 }

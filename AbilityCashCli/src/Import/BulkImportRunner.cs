@@ -32,23 +32,23 @@ public sealed class BulkImportRunner
         foreach (var path in files)
         {
             var source = Path.GetFileName(path);
-            var rule = _router.Resolve(path);
-            if (rule is null)
-            {
-                _report.FileErrors(path, new[] { new ImportError(source, null, "route", "нет importer'а") });
-                erroredFiles.Add(path);
-                continue;
-            }
 
-            RuleResult result;
+            HandlerResult? result;
             try
             {
-                result = await rule.ExecuteAsync(source, path, ct);
+                result = await _router.ImportAsync(source, path, ct);
             }
             catch (Exception ex)
             {
                 var fatal = new[] { new ImportError(source, null, "parse", ex.Message) };
                 _report.FileErrors(path, fatal);
+                erroredFiles.Add(path);
+                continue;
+            }
+
+            if (result is null)
+            {
+                _report.FileErrors(path, new[] { new ImportError(source, null, "route", "нет importer'а") });
                 erroredFiles.Add(path);
                 continue;
             }

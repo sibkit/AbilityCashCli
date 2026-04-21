@@ -1,4 +1,3 @@
-using System.Globalization;
 using AbilityCashCli.Configuration;
 using AbilityCashCli.Data;
 using AbilityCashCli.Data.Entities;
@@ -11,16 +10,12 @@ public sealed class CashPayoutsWriter : IImportWriter
     private readonly AppDbContext _db;
     private readonly CashPayoutsConfig _cfg;
     private readonly Type _importerType;
-    private readonly TimeSpan _defaultTime;
 
     public CashPayoutsWriter(AppDbContext db, CashPayoutsConfig cfg, Type importerType)
     {
         _db = db;
         _cfg = cfg;
         _importerType = importerType;
-        if (!TimeSpan.TryParseExact(cfg.DefaultTime, @"h\:mm", CultureInfo.InvariantCulture, out _defaultTime)
-            && !TimeSpan.TryParseExact(cfg.DefaultTime, @"hh\:mm", CultureInfo.InvariantCulture, out _defaultTime))
-            throw new InvalidOperationException($"CashPayouts.DefaultTime '{cfg.DefaultTime}' не распарсился (ожидается 'HH:mm').");
     }
 
     public async Task<WriterResult> WriteAsync(string source, IReadOnlyList<ImportRecord> records, CancellationToken ct = default)
@@ -43,26 +38,13 @@ public sealed class CashPayoutsWriter : IImportWriter
         if (resolved.Count == 0)
             return new WriterResult(0, errors);
 
-        var holderUnix = resolved.Min(x => x.BudgetDate);
-        var maxPos = await _db.TransactionGroups
-            .Where(g => g.HolderDateTime == holderUnix)
-            .MaxAsync(g => (int?)g.Position, ct);
-        var position = (maxPos ?? -1) + 1;
-
-        var group = new TransactionGroup
-        {
-            Guid = AbilityCashValues.NewGuidBytes(),
-            Changed = nowUnix,
-            Deleted = 0,
-            HolderDateTime = holderUnix,
-            Position = position
-        };
-
+        var groups = new TransactionGroupAllocator(_db, nowUnix);
         var extra = AbilityCashValues.BuildSourceComment(source, _importerType);
 
         foreach (var (r, src, dst, budgetDate) in resolved)
         {
             var stored = AbilityCashValues.ToStoredAmount(Math.Abs(r.Amount));
+            var group = await groups.NewGroupAsync(budgetDate, ct);
             group.Transactions.Add(new Transaction
             {
                 Guid = AbilityCashValues.NewGuidBytes(),
@@ -86,7 +68,6 @@ public sealed class CashPayoutsWriter : IImportWriter
             });
         }
 
-        _db.TransactionGroups.Add(group);
         var saved = await _db.SaveChangesAsync(ct);
         return new WriterResult(saved, errors);
     }
@@ -113,8 +94,7 @@ public sealed class CashPayoutsWriter : IImportWriter
         if (dst is null)
             return new ImportError(source, row, "resolve", $"Счёт назначения '{dstName}' не найден.");
 
-        var dateTime = r.Date.TimeOfDay == TimeSpan.Zero ? r.Date.Date + _defaultTime : r.Date;
-        var budgetDate = AbilityCashValues.ToUnix(dateTime);
+        var budgetDate = AbilityCashValues.StartOfDayUnix(r.Date);
 
         resolved.Add((r, src, dst, budgetDate));
         return null;

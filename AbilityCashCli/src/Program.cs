@@ -6,7 +6,7 @@ using AbilityCashCli.Import;
 using AbilityCashCli.Import.BankStatements;
 using AbilityCashCli.Import.BankStatements.Alfa;
 using AbilityCashCli.Import.BankStatements.TBank;
-using AbilityCashCli.Import.Rules;
+using AbilityCashCli.Import.Handlers;
 using AbilityCashCli.Import.SalaryRegisters;
 using AbilityCashCli.Import.Timesheets;
 using AbilityCashCli.Import.Vacations;
@@ -81,18 +81,18 @@ static async Task<int> RunImportAsync(AppConfig config, IReadOnlyList<string> fi
     var nameNormalizer = new PersonNameNormalizer(config.PersonAliases);
 
     var cashImporter = new CashPayoutsImporter(nameNormalizer);
-    var cashRule = new CashPayoutsRule(
+    var cashHandler = new CashPayoutsHandler(
         cashImporter,
         new CashPayoutsWriter(db, config.CashPayouts, cashImporter.GetType()));
 
     var vacResolver = new CategoryPathResolver(db, config.Vacation.CategoryPathSeparator);
     var vacImporter = new VacationsImporter(nameNormalizer);
-    var vacRule = new VacationsRule(
+    var vacHandler = new VacationsHandler(
         vacImporter,
         new VacationsWriter(db, config.Vacation, vacResolver, Console.Out, vacImporter.GetType()));
 
     var tbankImporter = new TBankSalaryRegisterImporter(nameNormalizer);
-    var tbankRule = new TBankSalaryRegisterRule(
+    var tbankHandler = new TBankSalaryRegisterHandler(
         tbankImporter,
         new SalaryRegisterWriter(db, config.Enterprises, config.SalaryRegisters, tbankImporter.GetType()));
 
@@ -100,17 +100,17 @@ static async Task<int> RunImportAsync(AppConfig config, IReadOnlyList<string> fi
     var bankWriter = new BankStatementWriter(db);
 
     var alfaImporter = new AlfaBankImporter();
-    var alfaRule = new AlfaBankRule(alfaImporter, bankAccountResolver, bankWriter);
+    var alfaHandler = new AlfaBankHandler(alfaImporter, bankAccountResolver, bankWriter);
 
     var tbankStatementImporter = new TBankStatementImporter();
-    var tbankStatementRule = new TBankStatementRule(tbankStatementImporter, bankAccountResolver, bankWriter);
+    var tbankStatementHandler = new TBankStatementHandler(tbankStatementImporter, bankAccountResolver, bankWriter);
 
-    var timesheetImporter = new TimesheetImporter(nameNormalizer, config.Timesheet);
-    var timesheetRule = new TimesheetRule(
+    var timesheetImporter = new TimesheetImporter(nameNormalizer);
+    var timesheetHandler = new TimesheetHandler(
         timesheetImporter,
         new TimesheetWriter(db, config.Timesheet, config.Salaries, vacResolver, timesheetImporter.GetType()));
 
-    IImportRouter router = new ImportRouter(new IImportRule[] { cashRule, vacRule, tbankRule, tbankStatementRule, alfaRule, timesheetRule });
+    IImportRouter router = new ImportRouter(new IImportHandler[] { cashHandler, vacHandler, tbankHandler, tbankStatementHandler, alfaHandler, timesheetHandler });
     IImportArchiver archiver = new FolderImportArchiver(Path.Combine(AppContext.BaseDirectory, ArchiveFolderName));
 
     var report = new ImportReportWriter(Console.Out, useConsoleColors: true);

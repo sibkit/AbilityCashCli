@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace AbilityCashCli.Import.BankStatements.Alfa;
 
-public sealed class AlfaBankRule : IImportRule
+public sealed class AlfaBankHandler : IImportHandler
 {
     private static readonly Regex WhitespaceRegex = new(@"\s+", RegexOptions.Compiled);
 
@@ -10,24 +10,24 @@ public sealed class AlfaBankRule : IImportRule
     private readonly IBankAccountResolver _resolver;
     private readonly BankStatementWriter _writer;
 
-    public AlfaBankRule(AlfaBankImporter importer, IBankAccountResolver resolver, BankStatementWriter writer)
+    public AlfaBankHandler(AlfaBankImporter importer, IBankAccountResolver resolver, BankStatementWriter writer)
     {
         _importer = importer;
         _resolver = resolver;
         _writer = writer;
     }
 
-    public bool Matches(string path)
+    public bool MatchesByName(string path) => false;
+
+    public async Task<HandlerResult?> TryImportAsync(string source, string path, CancellationToken ct = default)
     {
         if (!string.Equals(Path.GetExtension(path), ".csv", StringComparison.OrdinalIgnoreCase))
-            return false;
-        return AlfaBankImporter.HasHeader(path);
-    }
+            return null;
+        if (!AlfaBankImporter.HasHeader(path))
+            return null;
 
-    public async Task<RuleResult> ExecuteAsync(string source, string path, CancellationToken ct = default)
-    {
         var records = _importer.Read(path);
-        if (records.Count == 0) return new RuleResult(0, 0, Array.Empty<ImportError>());
+        if (records.Count == 0) return new HandlerResult(0, 0, Array.Empty<ImportError>());
 
         var account = await _resolver.ResolveAsync(records[0].Rch, ct);
 
@@ -50,7 +50,7 @@ public sealed class AlfaBankRule : IImportRule
         }
 
         var result = await _writer.WriteAsync(source, account, rows, _importer.GetType(), ct);
-        return new RuleResult(records.Count, result.Saved, result.Errors);
+        return new HandlerResult(records.Count, result.Saved, result.Errors);
     }
 
     private static string Normalize(string value) =>

@@ -4,6 +4,13 @@ namespace AbilityCashCli.Import;
 
 public sealed class CashPayoutsImporter : IImporter
 {
+    private readonly PersonNameNormalizer _nameNormalizer;
+
+    public CashPayoutsImporter(PersonNameNormalizer nameNormalizer)
+    {
+        _nameNormalizer = nameNormalizer;
+    }
+
     public IReadOnlyList<ImportRecord> Read(string path)
     {
         using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -34,7 +41,7 @@ public sealed class CashPayoutsImporter : IImporter
             if (!TryParseDecimal(rawAmount, out var amount))
                 continue;
 
-            var person = PersonNameNormalizer.Normalize(NormalizeString(reader.GetValue(personCol)));
+            var person = _nameNormalizer.Normalize(NormalizeString(reader.GetValue(personCol)));
             var comment = commentCol >= 0 ? NormalizeString(reader.GetValue(commentCol)) : "";
 
             records.Add(new ImportRecord(date, amount, person, comment));

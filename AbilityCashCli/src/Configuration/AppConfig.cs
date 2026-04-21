@@ -14,6 +14,8 @@ public sealed record AppConfig
 
     public SalaryRegistersConfig SalaryRegisters { get; init; } = new();
 
+    public IReadOnlyList<PersonNameAliasConfig> PersonAliases { get; init; } = Array.Empty<PersonNameAliasConfig>();
+
     public static AppConfig CreateDefault() => new()
     {
         DbPath = Path.Combine(AppContext.BaseDirectory, "ability.db"),
@@ -38,7 +40,8 @@ public sealed record AppConfig
         {
             SalaryAccountPrefix = "",
             DefaultTime = "14:00"
-        }
+        },
+        PersonAliases = Array.Empty<PersonNameAliasConfig>()
     };
 }
 

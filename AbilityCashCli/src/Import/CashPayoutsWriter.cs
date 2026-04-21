@@ -91,10 +91,7 @@ public sealed class CashPayoutsWriter : IImportWriter
 
         _db.TransactionGroups.Add(group);
 
-        await using var trx = await _db.Database.BeginTransactionAsync(ct);
-        var saved = await _db.SaveChangesAsync(ct);
-        await trx.CommitAsync(ct);
-        return saved;
+        return await _db.SaveChangesAsync(ct);
     }
 
     private CashPayoutRoute ResolveRoute(string? comment)

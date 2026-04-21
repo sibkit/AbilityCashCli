@@ -7,6 +7,13 @@ public sealed class VacationsImporter : IImporter
 {
     private static readonly string[] DateFormats = ["dd.MM.yyyy", "d.M.yyyy", "dd.M.yyyy", "d.MM.yyyy"];
 
+    private readonly PersonNameNormalizer _nameNormalizer;
+
+    public VacationsImporter(PersonNameNormalizer nameNormalizer)
+    {
+        _nameNormalizer = nameNormalizer;
+    }
+
     public IReadOnlyList<ImportRecord> Read(string path)
     {
         using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -35,7 +42,7 @@ public sealed class VacationsImporter : IImporter
         var records = new List<ImportRecord>();
         while (reader.Read())
         {
-            var person = PersonNameNormalizer.Normalize(NormalizeString(reader.GetValue(personCol)));
+            var person = _nameNormalizer.Normalize(NormalizeString(reader.GetValue(personCol)));
             if (string.IsNullOrEmpty(person)) continue;
 
             var rawDates = NormalizeString(reader.GetValue(datesCol));

@@ -36,14 +36,28 @@ try
 }
 catch (ArgumentException ex)
 {
-    Console.Error.WriteLine($"Ошибка: {ex.Message}");
-    Console.Error.WriteLine("Использование: AbilityCashCli [--db <path>] [--import <file>] [--import-dir <dir>]");
+    WriteError($"Ошибка: {ex.Message}");
+    WriteError("Использование: AbilityCashCli [--db <path>] [--import <file>] [--import-dir <dir>]");
     return 1;
 }
 catch (Exception ex)
 {
-    Console.Error.WriteLine($"Ошибка: {ex.Message}");
+    WriteError($"Ошибка: {ex.Message}");
     return 2;
+}
+
+static void WriteError(string message)
+{
+    var prev = Console.ForegroundColor;
+    Console.ForegroundColor = ConsoleColor.Red;
+    try
+    {
+        Console.Error.WriteLine(message);
+    }
+    finally
+    {
+        Console.ForegroundColor = prev;
+    }
 }
 
 static async Task<int> RunImportAsync(AppConfig config, IReadOnlyList<string> files)
@@ -60,18 +74,20 @@ static async Task<int> RunImportAsync(AppConfig config, IReadOnlyList<string> fi
 
     await using var db = new AppDbContext(options);
 
-    var cashImporter = new CashPayoutsImporter();
+    var nameNormalizer = new PersonNameNormalizer(config.PersonAliases);
+
+    var cashImporter = new CashPayoutsImporter(nameNormalizer);
     var cashRule = new CashPayoutsRule(
         cashImporter,
         new CashPayoutsWriter(db, config.CashPayouts, cashImporter.GetType()));
 
     var vacResolver = new CategoryPathResolver(db, config.Vacation.CategoryPathSeparator);
-    var vacImporter = new VacationsImporter();
+    var vacImporter = new VacationsImporter(nameNormalizer);
     var vacRule = new VacationsRule(
         vacImporter,
         new VacationsWriter(db, config.Vacation, vacResolver, Console.Out, vacImporter.GetType()));
 
-    var tbankImporter = new TBankSalaryRegisterImporter();
+    var tbankImporter = new TBankSalaryRegisterImporter(nameNormalizer);
     var tbankRule = new TBankSalaryRegisterRule(
         tbankImporter,
         new SalaryRegisterWriter(db, config.Enterprises, config.SalaryRegisters, tbankImporter.GetType()));
@@ -79,7 +95,7 @@ static async Task<int> RunImportAsync(AppConfig config, IReadOnlyList<string> fi
     IImportRouter router = new ImportRouter(new IImportRule[] { cashRule, vacRule, tbankRule });
     IImportArchiver archiver = new FolderImportArchiver(Path.Combine(AppContext.BaseDirectory, ArchiveFolderName));
 
-    var runner = new BulkImportRunner(router, archiver, Console.Out);
+    var runner = new BulkImportRunner(db, router, archiver, Console.Out);
     await runner.RunAsync(files);
     return 0;
 }

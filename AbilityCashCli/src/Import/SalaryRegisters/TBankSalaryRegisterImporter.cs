@@ -13,6 +13,13 @@ public sealed class TBankSalaryRegisterImporter : IImporter
 
     private const string ExecutedStatus = "ИСПОЛНЕН";
 
+    private readonly PersonNameNormalizer _nameNormalizer;
+
+    public TBankSalaryRegisterImporter(PersonNameNormalizer nameNormalizer)
+    {
+        _nameNormalizer = nameNormalizer;
+    }
+
     public IReadOnlyList<ImportRecord> Read(string path)
     {
         using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -51,7 +58,7 @@ public sealed class TBankSalaryRegisterImporter : IImporter
             var last = NormalizeString(reader.GetValue(lastCol));
             var first = NormalizeString(reader.GetValue(firstCol));
             var patr = NormalizeString(reader.GetValue(patrCol));
-            var fio = PersonNameNormalizer.Normalize($"{last} {first} {patr}".Trim());
+            var fio = _nameNormalizer.Normalize($"{last} {first} {patr}".Trim());
             if (string.IsNullOrEmpty(fio)) continue;
 
             var purpose = NormalizeString(reader.GetValue(purposeCol));

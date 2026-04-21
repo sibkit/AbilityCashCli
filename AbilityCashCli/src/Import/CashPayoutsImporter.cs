@@ -34,7 +34,7 @@ public sealed class CashPayoutsImporter : IImporter
             if (!TryParseDecimal(rawAmount, out var amount))
                 continue;
 
-            var person = NormalizeString(reader.GetValue(personCol));
+            var person = PersonNameNormalizer.Normalize(NormalizeString(reader.GetValue(personCol)));
             var comment = commentCol >= 0 ? NormalizeString(reader.GetValue(commentCol)) : "";
 
             records.Add(new ImportRecord(date, amount, person, comment));

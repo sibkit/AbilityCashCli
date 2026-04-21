@@ -53,12 +53,6 @@ static async Task<int> RunImportAsync(AppConfig config, IReadOnlyList<string> fi
         return 0;
     }
 
-    if (string.IsNullOrWhiteSpace(config.ImportAccountName))
-    {
-        Console.Error.WriteLine("В config.json не задан ImportAccountName.");
-        return 1;
-    }
-
     var options = new DbContextOptionsBuilder<AppDbContext>()
         .UseSqlite($"Data Source={config.DbPath}")
         .Options;
@@ -67,7 +61,7 @@ static async Task<int> RunImportAsync(AppConfig config, IReadOnlyList<string> fi
 
     var cashRule = new CashPayoutsRule(
         new CashPayoutsImporter(),
-        new CashPayoutsWriter(db, config.ImportAccountName));
+        new CashPayoutsWriter(db, config.CashPayouts));
 
     var vacResolver = new CategoryPathResolver(db, config.Vacation.CategoryPathSeparator);
     var vacRule = new VacationsRule(

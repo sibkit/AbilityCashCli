@@ -16,6 +16,12 @@ public static class AbilityCashValues
         return (int)new DateTimeOffset(d).ToUnixTimeSeconds();
     }
 
+    public static int ToUnix(DateTime dt)
+    {
+        var d = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+        return (int)new DateTimeOffset(d).ToUnixTimeSeconds();
+    }
+
     public static long ToStoredAmount(decimal amount) =>
         (long)Math.Round(amount * MoneyMultiplier, 0, MidpointRounding.AwayFromZero);
 }

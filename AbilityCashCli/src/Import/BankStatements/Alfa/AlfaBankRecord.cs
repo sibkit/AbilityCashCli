@@ -1,4 +1,4 @@
-namespace AbilityCashCli.Import.BankStatements;
+namespace AbilityCashCli.Import.BankStatements.Alfa;
 
 public sealed record AlfaBankRecord(
     DateTime Date,

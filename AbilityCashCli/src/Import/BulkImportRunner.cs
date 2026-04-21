@@ -25,7 +25,6 @@ public sealed class BulkImportRunner
     public async Task<Summary> RunAsync(IEnumerable<string> files, CancellationToken ct = default)
     {
         var imported = new List<string>();
-        var skipped = new List<(string Path, string Reason)>();
         var erroredFiles = new List<string>();
 
         await using var trx = await _db.Database.BeginTransactionAsync(ct);
@@ -36,8 +35,8 @@ public sealed class BulkImportRunner
             var rule = _router.Resolve(path);
             if (rule is null)
             {
-                skipped.Add((path, "нет importer'а"));
-                _report.Skip(path, "нет importer'а");
+                _report.FileErrors(path, new[] { new ImportError(source, null, "route", "нет importer'а") });
+                erroredFiles.Add(path);
                 continue;
             }
 
@@ -63,8 +62,8 @@ public sealed class BulkImportRunner
 
             if (result.RowsRead == 0)
             {
-                skipped.Add((path, "пусто"));
-                _report.Skip(path, "пусто");
+                _report.FileErrors(path, new[] { new ImportError(source, null, "import", "пусто") });
+                erroredFiles.Add(path);
                 continue;
             }
 
@@ -87,16 +86,14 @@ public sealed class BulkImportRunner
         }
 
         _report.BlankLine();
-        _report.Info($"Summary: imported={imported.Count}, skipped={skipped.Count}, errored={erroredFiles.Count}");
+        _report.Info($"Summary: imported={imported.Count}, errored={erroredFiles.Count}");
         foreach (var p in imported)
             _report.Info($"  imported: {Path.GetFileName(p)}");
-        foreach (var (p, reason) in skipped)
-            _report.Info($"  skipped:  {Path.GetFileName(p)} ({reason})");
         foreach (var p in erroredFiles)
             _report.ErrorLine($"  errored:  {Path.GetFileName(p)}");
 
-        return new Summary(imported.Count, skipped.Count, erroredFiles.Count);
+        return new Summary(imported.Count, erroredFiles.Count);
     }
 
-    public sealed record Summary(int Imported, int Skipped, int Errored);
+    public sealed record Summary(int Imported, int Errored);
 }

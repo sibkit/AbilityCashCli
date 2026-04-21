@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-using AbilityCashCli.Configuration;
 using AbilityCashCli.Data;
 using AbilityCashCli.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -8,43 +6,24 @@ namespace AbilityCashCli.Import.BankStatements;
 
 public sealed class BankStatementWriter
 {
-    private static readonly Regex WhitespaceRegex = new(@"\s+", RegexOptions.Compiled);
-
     private readonly AppDbContext _db;
-    private readonly BankStatementsConfig _cfg;
-    private readonly Type _importerType;
 
-    public BankStatementWriter(AppDbContext db, BankStatementsConfig cfg, Type importerType)
+    public BankStatementWriter(AppDbContext db)
     {
         _db = db;
-        _cfg = cfg;
-        _importerType = importerType;
     }
 
-    public async Task<WriterResult> WriteAsync(string source, IReadOnlyList<AlfaBankRecord> records, CancellationToken ct = default)
+    public async Task<WriterResult> WriteAsync(
+        string source,
+        Account account,
+        IReadOnlyList<BankStatementRow> rows,
+        Type importerType,
+        CancellationToken ct = default)
     {
-        if (records.Count == 0) return new WriterResult(0, Array.Empty<ImportError>());
-
-        var errors = new List<ImportError>();
-
-        var rch = records[0].Rch;
-        var map = _cfg.AccountByRch;
-        if (map is null || !map.TryGetValue(rch, out var accountName) || string.IsNullOrWhiteSpace(accountName))
-        {
-            errors.Add(new ImportError(source, null, "resolve",
-                $"Нет маппинга для Rch '{rch}' в BankStatements.AccountByRch."));
-            return new WriterResult(0, errors);
-        }
-
-        var account = await _db.Accounts.FirstOrDefaultAsync(a => a.Name == accountName && !a.Deleted, ct);
-        if (account is null)
-        {
-            errors.Add(new ImportError(source, null, "resolve", $"Счёт '{accountName}' не найден."));
-            return new WriterResult(0, errors);
-        }
+        if (rows.Count == 0) return new WriterResult(0, Array.Empty<ImportError>());
 
         var nowUnix = AbilityCashValues.NowUnix();
-        var holderUnix = records.Min(r => AbilityCashValues.StartOfDayUnix(r.Date));
+        var holderUnix = rows.Min(r => AbilityCashValues.StartOfDayUnix(r.Date));
         var maxPos = await _db.TransactionGroups
             .Where(g => g.HolderDateTime == holderUnix)
             .MaxAsync(g => (int?)g.Position, ct);
@@ -59,16 +38,13 @@ public sealed class BankStatementWriter
             Position = position
         };
 
-        var extra2 = AbilityCashValues.BuildSourceComment(source, _importerType);
+        var extra2 = AbilityCashValues.BuildSourceComment(source, importerType);
 
-        foreach (var r in records)
+        foreach (var r in rows)
         {
-            var stored = AbilityCashValues.ToStoredAmount(Math.Abs(r.AmountRur));
+            var stored = AbilityCashValues.ToStoredAmount(Math.Abs(r.Amount));
             var budgetDate = AbilityCashValues.StartOfDayUnix(r.Date);
-            var counterparty = Normalize(r.CounterpartyName);
-            var text70 = Normalize(r.Text70);
-            var comment = $"[{counterparty}] {text70}";
-            var extra1 = $"№{r.Number} от {r.ODate.ToString("dd.MM.yyyy")}, ИНН {r.CounterpartyInn}";
+            var extra1 = $"№{r.Number} от {r.ODate:dd.MM.yyyy}, ИНН {r.CounterpartyInn}";
 
             var txn = new Transaction
             {
@@ -80,10 +56,10 @@ public sealed class BankStatementWriter
                 Executed = 1,
                 Locked = 0,
                 Quantity = AbilityCashValues.QuantityOne,
-                Comment = comment,
+                Comment = r.Comment,
                 ExtraComment1 = extra1,
                 ExtraComment2 = extra2,
-                ExtraComment3 = "",
+                ExtraComment3 = r.ExtraDoc,
                 ExtraComment4 = "",
                 BudgetPeriodEnd = budgetDate + AbilityCashValues.DaySeconds
             };
@@ -104,9 +80,6 @@ public sealed class BankStatementWriter
 
         _db.TransactionGroups.Add(group);
         var saved = await _db.SaveChangesAsync(ct);
-        return new WriterResult(saved, errors);
+        return new WriterResult(saved, Array.Empty<ImportError>());
     }
-
-    private static string Normalize(string value) =>
-        WhitespaceRegex.Replace(value.Trim(), " ");
 }

@@ -16,9 +16,6 @@ public sealed class ImportReportWriter
     public void Ok(string path, int rows, int saved) =>
         WriteColored(ConsoleColor.Green, $"ok: {path} (rows={rows}, saved={saved})");
 
-    public void Skip(string path, string reason) =>
-        _out.WriteLine($"skip ({reason}): {path}");
-
     public void Info(string message) =>
         _out.WriteLine(message);
 

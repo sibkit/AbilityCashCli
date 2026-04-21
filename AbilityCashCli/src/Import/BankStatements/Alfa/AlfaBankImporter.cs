@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace AbilityCashCli.Import.BankStatements;
+namespace AbilityCashCli.Import.BankStatements.Alfa;
 
 public sealed class AlfaBankImporter
 {

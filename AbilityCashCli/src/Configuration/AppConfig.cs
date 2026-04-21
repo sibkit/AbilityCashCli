@@ -14,8 +14,6 @@ public sealed record AppConfig
 
     public SalaryRegistersConfig SalaryRegisters { get; init; } = new();
 
-    public BankStatementsConfig BankStatements { get; init; } = new();
-
     public TimesheetConfig Timesheet { get; init; } = new();
 
     public IReadOnlyList<SalaryConfig> Salaries { get; init; } = Array.Empty<SalaryConfig>();
@@ -46,10 +44,6 @@ public sealed record AppConfig
         {
             SalaryAccountPrefix = "",
             DefaultTime = "14:00"
-        },
-        BankStatements = new BankStatementsConfig
-        {
-            AccountByRch = new Dictionary<string, string>()
         },
         Timesheet = new TimesheetConfig
         {

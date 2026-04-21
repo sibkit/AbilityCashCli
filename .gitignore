@@ -3,3 +3,6 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+bash.exe.stackdump
+AbilityCashCli/config.json
+/.temp/

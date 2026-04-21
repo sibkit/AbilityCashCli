@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/sibkit/.local/bin/**)",
+      "Bash(awk 'BEGIN{IGNORECASE=1} /^#[a-f]/ || /[a-f]/')",
+      "Bash(awk 'BEGIN{IGNORECASE=1} /[a-f]/ {print}')",
+      "Bash(grep -oaE \".{30}claude.{0,10}color.{30}\" /c/Users/sibkit/.local/bin/claude)",
+      "Bash(grep -oaE \"text:\\\\\"\\(orange|brand\\)\\\\\"[^}]{0,80}\" /c/Users/sibkit/.local/bin/claude)",
+      "Bash(grep -oaE \"[a-zA-Z0-9_]{1,15}:\\\\\"#[0-9A-Fa-f]{6}\\\\\"\" /c/Users/sibkit/.local/bin/claude)",
+      "Bash(grep -oaE \"\\\\\\\\\\\\$8\\\\.\\(gray|dim|red|green|yellow|blue|cyan|magenta|white|bold|italic|underline\\)[^a-zA-Z]\" /c/Users/sibkit/.local/bin/claude)",
+      "Bash(grep -oaE '[a-zA-Z0-9_]{1,4}\\\\.\\(gray|dim|red|green|yellow|blue|cyan|magenta|white|bold\\)\\\\\\(' /c/Users/sibkit/.local/bin/claude)",
+      "Bash(awk '{print $1}')",
+      "Bash(git add *)",
+      "Bash(reg query *)",
+      "PowerShell(Get-ItemProperty *)",
+      "Bash(\"C:/Program Files/WinRAR/WinRAR.exe\" x -y -o+ \"D:/Dev/cs/projects/AbilityCashCli/.temp/ЗП 20260420.rar\" \"D:/Dev/cs/projects/AbilityCashCli/.temp/_extracted/\")",
+      "Bash(dotnet restore *)",
+      "Bash(dotnet tool *)",
+      "Bash(dotnet ef *)",
+      "Bash(dotnet run *)",
+      "Bash(python *)"
+    ]
+  }
+}

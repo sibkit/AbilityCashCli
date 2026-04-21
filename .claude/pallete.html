@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Claude Code palette</title>
+<style>
+  :root {
+    --bg:        #1a1a1a;
+    --bg-alt:    #242424;
+    --fg:        #F4F1EA;
+    --fg-dim:    #94a3b8;
+    --border:    #334155;
+    --brand:     #da7756;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 48px 64px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.5;
+  }
+  h1 {
+    margin: 0 0 4px;
+    color: var(--brand);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .subtitle {
+    color: var(--fg-dim);
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+  h2 {
+    margin: 40px 0 16px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--fg);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+  .swatch {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .swatch .block {
+    height: 72px;
+    border-bottom: 1px solid var(--border);
+  }
+  .swatch .meta {
+    padding: 10px 14px 12px;
+    font-family: "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 12px;
+  }
+  .swatch .hex {
+    color: var(--fg);
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .swatch .rgb {
+    color: var(--fg-dim);
+    margin-top: 2px;
+  }
+  .swatch .note {
+    color: var(--fg-dim);
+    margin-top: 6px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .swatch .ansi {
+    color: #78350f;
+    background: #fbf0df;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 6px;
+    display: inline-block;
+    font-size: 11px;
+  }
+
+  /* chalk demo row */
+  .chalk {
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 22px;
+    font-family: "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.9;
+  }
+  .chalk .row { white-space: pre; }
+  .chalk .label { display: inline-block; width: 140px; color: #94a3b8; }
+
+  .chalk .dim      { color: #d0d0d0; opacity: .55; }
+  .chalk .bold     { color: #ffffff; font-weight: 700; }
+  .chalk .red      { color: #d54e4e; }
+  .chalk .yellow   { color: #dcdc6c; }
+  .chalk .green    { color: #6ac46a; }
+  .chalk .gray     { color: #808080; }
+  .chalk .white    { color: #ffffff; }
+  .chalk .magenta  { color: #c061c0; }
+  .chalk .blue     { color: #5c5cff; }
+  .chalk .cyan     { color: #5ccccc; }
+  .chalk .brand    { color: #da7756; }
+
+  /* status line preview */
+  .statusline {
+    background: #0f0f0f;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-family: "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-size: 13px;
+    margin-top: 12px;
+  }
+  .statusline .model    { color: #da7756; }
+  .statusline .muted    { color: #808080; }
+  .statusline .path     { color: #a8a8a8; }
+  .statusline .branch   { color: #ccbea7; }
+
+  footer {
+    margin-top: 48px;
+    color: var(--fg-dim);
+    font-size: 12px;
+  }
+  code { font-family: "SF Mono", "Cascadia Code", Consolas, monospace; }
+</style>
+</head>
+<body>
+
+<h1>Claude Code palette</h1>
+<div class="subtitle">Hex values extracted from the CLI binary (<code>claude</code>, Bun-compiled PE). Only <code>#da7756</code> and <code>#F4F1EA</code> are explicitly branded; the rest are supporting assets.</div>
+
+<h2>Brand</h2>
+<div class="grid">
+  <div class="swatch">
+    <div class="block" style="background:#da7756"></div>
+    <div class="meta">
+      <div class="hex">#da7756</div>
+      <div class="rgb">rgb(218, 119, 86)</div>
+      <div class="note">Crab orange — <code>$8.hex("#da7756")</code> in the CLI (heatmap blocks ░▒▓█).</div>
+      <div class="ansi">\033[38;2;218;119;86m</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="block" style="background:#F4F1EA"></div>
+    <div class="meta">
+      <div class="hex">#F4F1EA</div>
+      <div class="rgb">rgb(244, 241, 234)</div>
+      <div class="note">Anthropic cream — referenced in design-system docs inside the binary.</div>
+      <div class="ansi">\033[38;2;244;241;234m</div>
+    </div>
+  </div>
+</div>
+
+<h2>Warm accents</h2>
+<div class="grid">
+  <div class="swatch">
+    <div class="block" style="background:#fbf0df"></div>
+    <div class="meta"><div class="hex">#fbf0df</div><div class="rgb">rgb(251, 240, 223)</div><div class="note">light cream</div></div>
+  </div>
+  <div class="swatch">
+    <div class="block" style="background:#f6dece"></div>
+    <div class="meta"><div class="hex">#f6dece</div><div class="rgb">rgb(246, 222, 206)</div><div class="note">peach cream</div></div>
+  </div>
+  <div class="swatch">
+    <div class="block" style="background:#f3d5a3"></div>
+    <div class="meta"><div class="hex">#f3d5a3</div><div class="rgb">rgb(243, 213, 163)</div><div class="note">warm sand</div></div>
+  </div>
+  <div class="swatch">
+    <div class="block" style="background:#ccbea7"></div>
+    <div class="meta"><div class="hex">#ccbea7</div><div class="rgb">rgb(204, 190, 167)</div><div class="note">warm tan — pairs well with crab orange</div></div>
+  </div>
+  <div class="swatch">
+    <div class="block" style="background:#e39437"></div>
+    <div class="meta"><div class="hex">#e39437</div><div class="rgb">rgb(227, 148, 55)</div><div class="note">amber-orange</div></div>
+  </div>
+  <div class="swatch">
+    <div class="block" style="background:#b45309"></div>
+    <div class="meta"><div class="hex">#b45309</div><div class="rgb">rgb(180, 83, 9)</div><div class="note">dark amber</div></div>
+  </div>
+  <div class="swatch">
+    <div class="block" style="background:#78350f"></div>
+    <div class="meta"><div class="hex">#78350f</div><div class="rgb">rgb(120, 53, 15)</div><div class="note">dark brown</div></div>
+  </div>
+</div>
+
+<h2>Neutrals (Tailwind slate)</h2>
+<div class="grid">
+  <div class="swatch"><div class="block" style="background:#f8fafc"></div><div class="meta"><div class="hex">#f8fafc</div><div class="note">slate-50</div></div></div>
+  <div class="swatch"><div class="block" style="background:#f1f5f9"></div><div class="meta"><div class="hex">#f1f5f9</div><div class="note">slate-100</div></div></div>
+  <div class="swatch"><div class="block" style="background:#e2e8f0"></div><div class="meta"><div class="hex">#e2e8f0</div><div class="note">slate-200</div></div></div>
+  <div class="swatch"><div class="block" style="background:#cbd5e1"></div><div class="meta"><div class="hex">#cbd5e1</div><div class="note">slate-300</div></div></div>
+  <div class="swatch"><div class="block" style="background:#94a3b8"></div><div class="meta"><div class="hex">#94a3b8</div><div class="note">slate-400</div></div></div>
+  <div class="swatch"><div class="block" style="background:#64748b"></div><div class="meta"><div class="hex">#64748b</div><div class="note">slate-500</div></div></div>
+  <div class="swatch"><div class="block" style="background:#475569"></div><div class="meta"><div class="hex">#475569</div><div class="note">slate-600</div></div></div>
+  <div class="swatch"><div class="block" style="background:#334155"></div><div class="meta"><div class="hex">#334155</div><div class="note">slate-700</div></div></div>
+  <div class="swatch"><div class="block" style="background:#0f172a"></div><div class="meta"><div class="hex">#0f172a</div><div class="note">slate-900</div></div></div>
+</div>
+
+<h2>CLI chalk methods — usage frequency</h2>
+<div class="chalk">
+  <div class="row"><span class="label">dim (174)</span>    <span class="dim">subdued secondary text — status captions, hints</span></div>
+  <div class="row"><span class="label">bold (148)</span>   <span class="bold">emphasised keywords, headings</span></div>
+  <div class="row"><span class="label">red (56)</span>     <span class="red">error output, failed assertions</span></div>
+  <div class="row"><span class="label">yellow (40)</span>  <span class="yellow">warnings, caveats</span></div>
+  <div class="row"><span class="label">green (18)</span>   <span class="green">success, diffs (+)</span></div>
+  <div class="row"><span class="label">gray (14)</span>    <span class="gray">muted captions, separators</span></div>
+  <div class="row"><span class="label">white (4)</span>    <span class="white">rare — usually with other modifiers</span></div>
+  <div class="row"><span class="label">magenta (4)</span>  <span class="magenta">rare</span></div>
+  <div class="row"><span class="label">blue (4)</span>     <span class="blue">rare</span></div>
+  <div class="row"><span class="label">cyan (2)</span>     <span class="cyan">rare</span></div>
+  <div class="row"><span class="label">hex #da7756 (2)</span> <span class="brand">brand accent — heatmap blocks ░▒▓█</span></div>
+</div>
+
+<h2>Status-line preview (current config)</h2>
+<div class="statusline">
+  <span class="model">Opus 4.7 (1M context)</span><span class="muted"> ctx:34%/28.7k sess:12.3k 5h:18% 7d:4%</span> <span class="path">~/Dev/cs/projects/AbilityCashCli</span><span class="branch"> [master]</span>
+</div>
+
+<footer>
+  Generated from <code>~/.local/bin/claude</code> via <code>grep -oa</code> on the PE binary.
+  Open this file directly in a browser to see live colour rendering.
+</footer>
+
+</body>
+</html>

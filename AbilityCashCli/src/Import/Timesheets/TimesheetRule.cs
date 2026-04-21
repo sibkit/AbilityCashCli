@@ -1,17 +1,17 @@
 using System.Text.RegularExpressions;
 
-namespace AbilityCashCli.Import.Vacations;
+namespace AbilityCashCli.Import.Timesheets;
 
-public sealed class VacationsRule : IImportRule
+public sealed class TimesheetRule : IImportRule
 {
     private static readonly Regex Pattern = new(
-        @"^Отпуска.*\.xlsx$",
+        @"^Табель\s.*\.xlsx?$",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private readonly IImporter _importer;
     private readonly IImportWriter _writer;
 
-    public VacationsRule(IImporter importer, IImportWriter writer)
+    public TimesheetRule(IImporter importer, IImportWriter writer)
     {
         _importer = importer;
         _writer = writer;

@@ -3,8 +3,10 @@ using AbilityCashCli.Cli;
 using AbilityCashCli.Configuration;
 using AbilityCashCli.Data;
 using AbilityCashCli.Import;
+using AbilityCashCli.Import.BankStatements;
 using AbilityCashCli.Import.Rules;
 using AbilityCashCli.Import.SalaryRegisters;
+using AbilityCashCli.Import.Timesheets;
 using AbilityCashCli.Import.Vacations;
 using Microsoft.EntityFrameworkCore;
 
@@ -92,7 +94,17 @@ static async Task<int> RunImportAsync(AppConfig config, IReadOnlyList<string> fi
         tbankImporter,
         new SalaryRegisterWriter(db, config.Enterprises, config.SalaryRegisters, tbankImporter.GetType()));
 
-    IImportRouter router = new ImportRouter(new IImportRule[] { cashRule, vacRule, tbankRule });
+    var alfaImporter = new AlfaBankImporter();
+    var alfaRule = new AlfaBankRule(
+        alfaImporter,
+        new BankStatementWriter(db, config.BankStatements, alfaImporter.GetType()));
+
+    var timesheetImporter = new TimesheetImporter(nameNormalizer, config.Timesheet);
+    var timesheetRule = new TimesheetRule(
+        timesheetImporter,
+        new TimesheetWriter(db, config.Timesheet, config.Salaries, vacResolver, timesheetImporter.GetType()));
+
+    IImportRouter router = new ImportRouter(new IImportRule[] { cashRule, vacRule, tbankRule, alfaRule, timesheetRule });
     IImportArchiver archiver = new FolderImportArchiver(Path.Combine(AppContext.BaseDirectory, ArchiveFolderName));
 
     var runner = new BulkImportRunner(db, router, archiver, Console.Out);

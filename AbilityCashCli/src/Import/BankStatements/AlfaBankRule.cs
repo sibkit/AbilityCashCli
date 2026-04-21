@@ -1,11 +1,11 @@
-namespace AbilityCashCli.Import.SalaryRegisters;
+namespace AbilityCashCli.Import.BankStatements;
 
-public sealed class TBankSalaryRegisterRule : IImportRule
+public sealed class AlfaBankRule : IImportRule
 {
-    private readonly IImporter _importer;
-    private readonly IImportWriter _writer;
+    private readonly AlfaBankImporter _importer;
+    private readonly BankStatementWriter _writer;
 
-    public TBankSalaryRegisterRule(IImporter importer, IImportWriter writer)
+    public AlfaBankRule(AlfaBankImporter importer, BankStatementWriter writer)
     {
         _importer = importer;
         _writer = writer;
@@ -13,9 +13,9 @@ public sealed class TBankSalaryRegisterRule : IImportRule
 
     public bool Matches(string path)
     {
-        if (!string.Equals(Path.GetExtension(path), ".xlsx", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(Path.GetExtension(path), ".csv", StringComparison.OrdinalIgnoreCase))
             return false;
-        return TBankSalaryRegisterImporter.HasHeader(path);
+        return AlfaBankImporter.HasHeader(path);
     }
 
     public async Task<(int RowsRead, int RowsSaved)> ExecuteAsync(string source, string path, CancellationToken ct = default)

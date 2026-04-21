@@ -41,23 +41,22 @@ public sealed class BulkImportRunner
 
             try
             {
-                var records = rule.Importer.Read(path);
-                if (records.Count == 0)
+                var source = Path.GetFileName(path);
+                var (rows, saved) = await rule.ExecuteAsync(source, path, ct);
+                if (rows == 0)
                 {
                     skipped.Add((path, "пусто"));
                     _log.WriteLine($"skip (пусто): {path}");
                     continue;
                 }
 
-                var source = Path.GetFileName(path);
-                var saved = await rule.Writer.WriteAsync(source, records, ct);
-                _log.WriteLine($"ok: {path} (rows={records.Count}, saved={saved})");
+                _log.WriteLine($"ok: {path} (rows={rows}, saved={saved})");
                 imported.Add(path);
             }
             catch (Exception ex)
             {
                 errored.Add((path, ex.Message));
-                WriteError($"error: {path} :: {ex.Message}");
+                WriteError($"error: {path} :: {ex}");
             }
         }
 

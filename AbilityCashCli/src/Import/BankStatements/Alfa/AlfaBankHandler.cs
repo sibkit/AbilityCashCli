@@ -45,8 +45,7 @@ public sealed class AlfaBankHandler : IImportHandler
                 Comment: $"[{counterparty}] {text70}",
                 CounterpartyName: counterparty,
                 CounterpartyInn: r.CounterpartyInn,
-                CounterpartyAcc: r.CounterpartyAcc,
-                ExtraDoc: ""));
+                CounterpartyAcc: r.CounterpartyAcc));
         }
 
         var result = await _writer.WriteAsync(source, account, rows, _importer.GetType(), ct);

@@ -15,7 +15,7 @@ CLI-инструмент для автоматической обработки 
 
 Понятие «бюджет» не используем. Поля `BudgetDate` / `BudgetPeriodEnd` в схеме — исторические; трактуем как дату операции и конец её периода. `BudgetDate` — всегда 00:00 UTC (`StartOfDayUnix`); порядок внутри суток — через `TransactionGroup.Position`.
 
-`TransactionGroup` — 1:1 с `Transaction`. Каждая транзакция — своя группа; при нескольких транзакциях в одной группе AbilityCash падает при открытии БД. `HolderDateTime` = `BudgetDate` транзакции, `Position` = порядок среди групп с тем же `HolderDateTime`. Общий аллокатор — `TransactionGroupAllocator`.
+`TransactionGroup` — 1:1 с `Transaction`. Каждая транзакция — своя группа; при нескольких транзакциях в одной группе AbilityCash падает при открытии БД. `HolderDateTime` = `BudgetDate` транзакции, `Position` = порядок среди групп с тем же `HolderDateTime`. `Recurrence` — всегда `"{}"` (`AbilityCashValues.RecurrenceEmpty`); NULL валит AbilityCash при открытии. Общий аллокатор — `TransactionGroupAllocator`.
 
 **Enterprise** — программный концепт предприятия (`Name` + `PayrollAccount`). В AbilityCash отсутствует; используется на уровне CLI для роутинга источника зарплаты (например, по подстроке имени файла).
 
@@ -23,7 +23,7 @@ CLI-инструмент для автоматической обработки 
 
 - **Префиксы счетов:** `[ЗП]` — зарплатный счёт предприятия (источник выплат), `[З]` — личный счёт сотрудника (формат `[З] ФИО`).
 - **Суффикс `[..xxxx]`** в `Account.Name` — последние 4 цифры номера счёта в банке. Используется для сопоставления банковской выписки (где в имени файла есть полный 20-значный счёт) с записью в AbilityCash. Пример: `[ЗП] ИП Желтухин (Т-Банк) [..5852]`.
-- **ExtraComment1..4** — только метаданные источника, не пользовательский контент. `ExtraComment2 = "{filename} | {ImporterClassName} v{AppVersion}"` (через `AbilityCashValues.BuildSourceComment`). Версия — `AppInfo.Version`.
+- **ExtraComment1** = Документ (у выписок: `№{№} от {дата}, ИНН {ИНН}`; у остальных писателей — `""`). **ExtraComment2** = Источник: `{filename} | {ImporterClassName} v{AppVersion}` (через `AbilityCashValues.BuildSourceComment`). Версия — `AppInfo.Version`. **ExtraComment3** и **ExtraComment4** — всегда `""` (в UI скрыты).
 
 ## Зарплатный поток
 
@@ -54,9 +54,9 @@ CLI-инструмент для автоматической обработки 
 
 Счёт выписки резолвится по суффиксу `[..xxxx]` в `Account.Name` — последние 4 цифры полного счёта из имени файла. `0` или `>1` совпадений — ошибка импорта.
 
-## Подготовь загрузку
+## Обнови файлы
 
-По команде «подготовь загрузку»:
+По команде «обнови файлы»:
 1. Вернуть файлы из `AbilityCashCli/bin/**/imported/` в `.temp/_extracted/` (move).
 2. Скопировать `D:\Ledmaster\ledmaster-git\Ledmaster.cash` → `.temp/Ledmaster.cash` (overwrite).
 

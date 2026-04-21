@@ -42,7 +42,6 @@ public sealed class TBankStatementHandler : IImportHandler
         {
             var counterparty = Normalize(r.CounterpartyName);
             var purpose = Normalize(r.Purpose);
-            var description = Normalize(r.Description);
             rows.Add(new BankStatementRow(
                 Date: r.Date,
                 DC: r.DC,
@@ -52,8 +51,7 @@ public sealed class TBankStatementHandler : IImportHandler
                 Comment: $"[{counterparty}] {purpose}",
                 CounterpartyName: counterparty,
                 CounterpartyInn: r.CounterpartyInn,
-                CounterpartyAcc: r.CounterpartyAcc,
-                ExtraDoc: string.Equals(description, purpose, StringComparison.Ordinal) ? "" : description));
+                CounterpartyAcc: r.CounterpartyAcc));
         }
 
         var result = await _writer.WriteAsync(source, account, rows, _importer.GetType(), ct);

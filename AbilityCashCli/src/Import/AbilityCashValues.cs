@@ -5,9 +5,10 @@ public static class AbilityCashValues
     public const long MoneyMultiplier = 10_000;
     public const int QuantityOne = 10_000;
     public const int DaySeconds = 86_400;
+    public const string RecurrenceEmpty = "{}";
 
     public static string BuildSourceComment(string filename, Type importerType) =>
-        $"{filename} | {importerType.Name} v{AppInfo.Version}";
+        $"{Path.GetFileName(filename)} | {importerType.Name} v{AppInfo.Version}";
 
     public static byte[] NewGuidBytes() => Guid.NewGuid().ToByteArray();
 

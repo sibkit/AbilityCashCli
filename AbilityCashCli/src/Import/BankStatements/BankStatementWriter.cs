@@ -46,7 +46,7 @@ public sealed class BankStatementWriter
                 Comment = r.Comment,
                 ExtraComment1 = extra1,
                 ExtraComment2 = extra2,
-                ExtraComment3 = r.ExtraDoc,
+                ExtraComment3 = "",
                 ExtraComment4 = "",
                 BudgetPeriodEnd = budgetDate + AbilityCashValues.DaySeconds
             };

@@ -33,7 +33,8 @@ public sealed class TransactionGroupAllocator
             Changed = _nowUnix,
             Deleted = 0,
             HolderDateTime = holderDateTime,
-            Position = position
+            Position = position,
+            Recurrence = AbilityCashValues.RecurrenceEmpty
         };
         _db.TransactionGroups.Add(group);
         return group;

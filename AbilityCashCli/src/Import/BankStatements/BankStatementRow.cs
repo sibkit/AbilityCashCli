@@ -9,5 +9,4 @@ public sealed record BankStatementRow(
     string Comment,
     string CounterpartyName,
     string CounterpartyInn,
-    string CounterpartyAcc,
-    string ExtraDoc);
+    string CounterpartyAcc);

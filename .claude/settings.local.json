@@ -23,7 +23,17 @@
       "Bash(xargs grep *)",
       "Bash(rm D:/Dev/cs/projects/AbilityCashCli/AbilityCashCli/src/Import/Rules/CashPayoutsRule.cs)",
       "Bash(rmdir D:/Dev/cs/projects/AbilityCashCli/AbilityCashCli/src/Import/Rules)",
-      "Bash(sqlite3 --version)"
+      "Bash(sqlite3 --version)",
+      "Bash(sort -k6,7)",
+      "Bash(sort -k8,8)",
+      "Bash(sqlite3 *)",
+      "Read(//c/Windows/System32/**)",
+      "Read(//c/Program Files/**)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(taskkill //F //IM python.exe)",
+      "Bash(tee .temp/diag2.out)",
+      "Bash(mv AbilityCashCli/bin/Debug/net9.0/imported/* .temp/_extracted/)",
+      "Bash(cp -f D:/Ledmaster/ledmaster-git/Ledmaster.cash .temp/Ledmaster.cash)"
     ]
   }
 }

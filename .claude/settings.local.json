@@ -18,7 +18,8 @@
       "Bash(dotnet tool *)",
       "Bash(dotnet ef *)",
       "Bash(dotnet run *)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(git *)"
     ]
   }
 }

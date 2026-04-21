@@ -10,6 +10,10 @@ public sealed record AppConfig
 
     public VacationConfig Vacation { get; init; } = new();
 
+    public IReadOnlyList<EnterpriseConfig> Enterprises { get; init; } = Array.Empty<EnterpriseConfig>();
+
+    public SalaryRegistersConfig SalaryRegisters { get; init; } = new();
+
     public static AppConfig CreateDefault() => new()
     {
         DbPath = Path.Combine(AppContext.BaseDirectory, "ability.db"),
@@ -28,6 +32,12 @@ public sealed record AppConfig
             AverageDaysPerMonth = 29.3m,
             PreDaysOffset = 3,
             CategoryPathSeparator = "::"
+        },
+        Enterprises = Array.Empty<EnterpriseConfig>(),
+        SalaryRegisters = new SalaryRegistersConfig
+        {
+            SalaryAccountPrefix = "",
+            DefaultTime = "14:00"
         }
     };
 }

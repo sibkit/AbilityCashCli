@@ -6,6 +6,9 @@ public static class AbilityCashValues
     public const int QuantityOne = 10_000;
     public const int DaySeconds = 86_400;
 
+    public static string BuildSourceComment(string filename, Type importerType) =>
+        $"{filename} | {importerType.Name} v{AppInfo.Version}";
+
     public static byte[] NewGuidBytes() => Guid.NewGuid().ToByteArray();
 
     public static int NowUnix() => (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds();

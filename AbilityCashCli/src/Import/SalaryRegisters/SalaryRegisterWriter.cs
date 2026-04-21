@@ -4,46 +4,57 @@ using AbilityCashCli.Data;
 using AbilityCashCli.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace AbilityCashCli.Import;
+namespace AbilityCashCli.Import.SalaryRegisters;
 
-public sealed class CashPayoutsWriter : IImportWriter
+public sealed class SalaryRegisterWriter : IImportWriter
 {
     private readonly AppDbContext _db;
-    private readonly CashPayoutsConfig _cfg;
+    private readonly IReadOnlyList<EnterpriseConfig> _enterprises;
+    private readonly SalaryRegistersConfig _cfg;
     private readonly Type _importerType;
     private readonly TimeSpan _defaultTime;
 
-    public CashPayoutsWriter(AppDbContext db, CashPayoutsConfig cfg, Type importerType)
+    public SalaryRegisterWriter(
+        AppDbContext db,
+        IReadOnlyList<EnterpriseConfig> enterprises,
+        SalaryRegistersConfig cfg,
+        Type importerType)
     {
         _db = db;
+        _enterprises = enterprises;
         _cfg = cfg;
         _importerType = importerType;
         if (!TimeSpan.TryParseExact(cfg.DefaultTime, @"h\:mm", CultureInfo.InvariantCulture, out _defaultTime)
             && !TimeSpan.TryParseExact(cfg.DefaultTime, @"hh\:mm", CultureInfo.InvariantCulture, out _defaultTime))
-            throw new InvalidOperationException($"CashPayouts.DefaultTime '{cfg.DefaultTime}' не распарсился (ожидается 'HH:mm').");
+            throw new InvalidOperationException($"SalaryRegisters.DefaultTime '{cfg.DefaultTime}' не распарсился (ожидается 'HH:mm').");
     }
 
     public async Task<int> WriteAsync(string source, IReadOnlyList<ImportRecord> records, CancellationToken ct = default)
     {
         if (records.Count == 0) return 0;
 
+        var enterprise = ResolveEnterprise(source);
         var nowUnix = AbilityCashValues.NowUnix();
 
-        var resolved = new List<(ImportRecord Record, Account Src, Account Dst, int BudgetDate)>();
-        var sourceCache = new Dictionary<string, Account>(StringComparer.Ordinal);
+        var src = await _db.Accounts.FirstOrDefaultAsync(a => a.Name == enterprise.PayrollAccount && !a.Deleted, ct)
+                  ?? throw new InvalidOperationException($"Счёт источника '{enterprise.PayrollAccount}' не найден.");
+
+        var resolved = new List<(ImportRecord Record, Account Dst, int BudgetDate)>();
+        var dstCache = new Dictionary<string, Account>(StringComparer.Ordinal);
 
         foreach (var r in records)
         {
-            var route = ResolveRoute(r.Comment);
-            var src = await GetAccountAsync(sourceCache, route.SourceAccount, ct);
             var dstName = _cfg.SalaryAccountPrefix + r.Person;
-            var dst = await _db.Accounts.FirstOrDefaultAsync(a => a.Name == dstName && !a.Deleted, ct)
+            if (!dstCache.TryGetValue(dstName, out var dst))
+            {
+                dst = await _db.Accounts.FirstOrDefaultAsync(a => a.Name == dstName && !a.Deleted, ct)
                       ?? throw new InvalidOperationException($"Счёт назначения '{dstName}' не найден.");
+                dstCache[dstName] = dst;
+            }
 
             var dateTime = r.Date.TimeOfDay == TimeSpan.Zero ? r.Date.Date + _defaultTime : r.Date;
             var budgetDate = AbilityCashValues.ToUnix(dateTime);
-
-            resolved.Add((r, src, dst, budgetDate));
+            resolved.Add((r, dst, budgetDate));
         }
 
         var holderUnix = resolved.Min(x => x.BudgetDate);
@@ -63,7 +74,7 @@ public sealed class CashPayoutsWriter : IImportWriter
 
         var extra = AbilityCashValues.BuildSourceComment(source, _importerType);
 
-        foreach (var (r, src, dst, budgetDate) in resolved)
+        foreach (var (r, dst, budgetDate) in resolved)
         {
             var stored = AbilityCashValues.ToStoredAmount(Math.Abs(r.Amount));
             group.Transactions.Add(new Transaction
@@ -97,21 +108,17 @@ public sealed class CashPayoutsWriter : IImportWriter
         return saved;
     }
 
-    private CashPayoutRoute ResolveRoute(string? comment)
+    private EnterpriseConfig ResolveEnterprise(string source)
     {
-        var key = (comment ?? "").Trim();
-        foreach (var route in _cfg.Routes)
-            if (string.Equals(route.Comment.Trim(), key, StringComparison.OrdinalIgnoreCase))
-                return route;
-        throw new InvalidOperationException($"Не найден route для комментария '{key}'.");
-    }
-
-    private async Task<Account> GetAccountAsync(Dictionary<string, Account> cache, string name, CancellationToken ct)
-    {
-        if (cache.TryGetValue(name, out var cached)) return cached;
-        var acc = await _db.Accounts.FirstOrDefaultAsync(a => a.Name == name && !a.Deleted, ct)
-                  ?? throw new InvalidOperationException($"Счёт источника '{name}' не найден.");
-        cache[name] = acc;
-        return acc;
+        var matches = _enterprises
+            .Where(e => !string.IsNullOrEmpty(e.Name)
+                        && source.Contains(e.Name, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (matches.Count == 0)
+            throw new InvalidOperationException($"В имени '{source}' не найдено ни одного Enterprise.Name.");
+        if (matches.Count > 1)
+            throw new InvalidOperationException(
+                $"В имени '{source}' найдено несколько Enterprise: {string.Join(", ", matches.Select(m => m.Name))}.");
+        return matches[0];
     }
 }

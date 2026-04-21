@@ -11,13 +11,20 @@ public sealed class VacationsWriter : IImportWriter
     private readonly VacationConfig _cfg;
     private readonly CategoryPathResolver _resolver;
     private readonly TextWriter _log;
+    private readonly Type _importerType;
 
-    public VacationsWriter(AppDbContext db, VacationConfig cfg, CategoryPathResolver resolver, TextWriter log)
+    public VacationsWriter(
+        AppDbContext db,
+        VacationConfig cfg,
+        CategoryPathResolver resolver,
+        TextWriter log,
+        Type importerType)
     {
         _db = db;
         _cfg = cfg;
         _resolver = resolver;
         _log = log;
+        _importerType = importerType;
     }
 
     public async Task<int> WriteAsync(string source, IReadOnlyList<ImportRecord> records, CancellationToken ct = default)
@@ -43,6 +50,8 @@ public sealed class VacationsWriter : IImportWriter
             HolderDateTime = nowUnix,
             Position = position
         };
+
+        var extra = AbilityCashValues.BuildSourceComment(source, _importerType);
 
         foreach (var r in records)
         {
@@ -123,7 +132,7 @@ public sealed class VacationsWriter : IImportWriter
                 Quantity = AbilityCashValues.QuantityOne,
                 Comment = r.Comment,
                 ExtraComment1 = "",
-                ExtraComment2 = source,
+                ExtraComment2 = extra,
                 ExtraComment3 = "",
                 ExtraComment4 = "",
                 BudgetPeriodEnd = dateUnix + AbilityCashValues.DaySeconds

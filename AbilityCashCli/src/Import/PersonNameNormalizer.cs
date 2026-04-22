@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.RegularExpressions;
 using AbilityCashCli.Configuration;
 
@@ -26,14 +27,14 @@ public sealed class PersonNameNormalizer
         string result;
         if (tokens.Length >= 3)
         {
-            var surname = string.Join(' ', tokens.Take(tokens.Length - 2));
-            var init1 = ToInitial(tokens[^2]);
-            var init2 = ToInitial(tokens[^1]);
+            var surname = TitleCase(string.Join(' ', tokens.Take(tokens.Length - 2)));
+            var init1 = ToInitial(tokens[^2]).ToUpperInvariant();
+            var init2 = ToInitial(tokens[^1]).ToUpperInvariant();
             result = $"{surname} {init1}{init2}";
         }
         else
         {
-            result = trimmed;
+            result = string.Join(' ', tokens.Select(NormalizeShortToken));
         }
 
         result = DotSpaceRegex.Replace(result, ".");
@@ -41,6 +42,25 @@ public sealed class PersonNameNormalizer
         return _aliases.TryGetValue(result, out var alias) ? alias : result;
     }
 
+    private static string NormalizeShortToken(string token) =>
+        token.Contains('.') ? token.ToUpperInvariant() : TitleCase(token);
+
     private static string ToInitial(string token) =>
         token.Contains('.') ? token : token[..1] + ".";
+
+    private static string TitleCase(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return value;
+        var sb = new StringBuilder(value.Length);
+        var prevIsLetter = false;
+        foreach (var ch in value)
+        {
+            var isLetter = char.IsLetter(ch);
+            if (isLetter && !prevIsLetter) sb.Append(char.ToUpperInvariant(ch));
+            else if (isLetter) sb.Append(char.ToLowerInvariant(ch));
+            else sb.Append(ch);
+            prevIsLetter = isLetter;
+        }
+        return sb.ToString();
+    }
 }

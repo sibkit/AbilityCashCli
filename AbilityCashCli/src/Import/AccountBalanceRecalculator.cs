@@ -19,7 +19,7 @@ public sealed class AccountBalanceRecalculator
 
         var transactions = await _db.Transactions
             .Include(t => t.GroupNavigation)
-            .Where(t => t.Deleted == 0)
+            .Where(t => t.Deleted == 0 && t.Executed != 0)
             .OrderBy(t => t.GroupNavigation.HolderDateTime)
             .ThenBy(t => t.GroupNavigation.Position)
             .ThenBy(t => t.Position)

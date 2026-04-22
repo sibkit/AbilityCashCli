@@ -96,6 +96,11 @@ static async Task<int> RunImportAsync(AppConfig config, IReadOnlyList<string> fi
         tbankImporter,
         new SalaryRegisterWriter(db, config.Enterprises, config.SalaryRegisters, tbankImporter.GetType()));
 
+    var alfaSalaryImporter = new AlfaBankSalaryRegisterImporter(nameNormalizer);
+    var alfaSalaryHandler = new AlfaBankSalaryRegisterHandler(
+        alfaSalaryImporter,
+        new SalaryRegisterWriter(db, config.Enterprises, config.SalaryRegisters, alfaSalaryImporter.GetType()));
+
     var bankAccountResolver = new BankAccountResolver(db);
     var bankWriter = new BankStatementWriter(db);
 
@@ -110,7 +115,7 @@ static async Task<int> RunImportAsync(AppConfig config, IReadOnlyList<string> fi
         timesheetImporter,
         new TimesheetWriter(db, config.Timesheet, config.Salaries, vacResolver, timesheetImporter.GetType()));
 
-    IImportRouter router = new ImportRouter(new IImportHandler[] { cashHandler, vacHandler, tbankHandler, tbankStatementHandler, alfaHandler, timesheetHandler });
+    IImportRouter router = new ImportRouter(new IImportHandler[] { cashHandler, vacHandler, tbankHandler, alfaSalaryHandler, tbankStatementHandler, alfaHandler, timesheetHandler });
     IImportArchiver archiver = new FolderImportArchiver(Path.Combine(AppContext.BaseDirectory, ArchiveFolderName));
 
     var report = new ImportReportWriter(Console.Out, useConsoleColors: true);

@@ -30,7 +30,7 @@ public sealed class SalaryRegisterWriter : IImportWriter
 
         var errors = new List<ImportError>();
 
-        var enterprise = ResolveEnterprise(source, out var enterpriseError);
+        var enterprise = ResolveEnterprise(source, records[0].EnterpriseHint, out var enterpriseError);
         if (enterprise is null)
         {
             errors.Add(new ImportError(source, null, "resolve", enterpriseError!));
@@ -106,21 +106,28 @@ public sealed class SalaryRegisterWriter : IImportWriter
         return new WriterResult(saved, errors);
     }
 
-    private EnterpriseConfig? ResolveEnterprise(string source, out string? error)
+    private EnterpriseConfig? ResolveEnterprise(string source, string? hint, out string? error)
     {
         error = null;
+        var hasHint = !string.IsNullOrWhiteSpace(hint);
         var matches = _enterprises
             .Where(e => !string.IsNullOrEmpty(e.Name)
-                        && source.Contains(e.Name, StringComparison.OrdinalIgnoreCase))
+                        && (hasHint
+                            ? e.Name.Contains(hint!, StringComparison.OrdinalIgnoreCase)
+                            : source.Contains(e.Name, StringComparison.OrdinalIgnoreCase)))
             .ToList();
         if (matches.Count == 0)
         {
-            error = $"В имени '{source}' не найдено ни одного Enterprise.Name.";
+            error = hasHint
+                ? $"По подсказке '{hint}' не найдено ни одного Enterprise.Name."
+                : $"В имени '{source}' не найдено ни одного Enterprise.Name.";
             return null;
         }
         if (matches.Count > 1)
         {
-            error = $"В имени '{source}' найдено несколько Enterprise: {string.Join(", ", matches.Select(m => m.Name))}.";
+            error = hasHint
+                ? $"По подсказке '{hint}' найдено несколько Enterprise: {string.Join(", ", matches.Select(m => m.Name))}."
+                : $"В имени '{source}' найдено несколько Enterprise: {string.Join(", ", matches.Select(m => m.Name))}.";
             return null;
         }
         return matches[0];

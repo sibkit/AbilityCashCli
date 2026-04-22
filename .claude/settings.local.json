@@ -33,7 +33,14 @@
       "Bash(taskkill //F //IM python.exe)",
       "Bash(tee .temp/diag2.out)",
       "Bash(mv AbilityCashCli/bin/Debug/net9.0/imported/* .temp/_extracted/)",
-      "Bash(cp -f D:/Ledmaster/ledmaster-git/Ledmaster.cash .temp/Ledmaster.cash)"
+      "Bash(cp -f D:/Ledmaster/ledmaster-git/Ledmaster.cash .temp/Ledmaster.cash)",
+      "Bash(\"/c/Program Files/WinRAR/UnRAR.exe\" l \"ЗП 20260420.rar\")",
+      "Bash(\"/c/Program Files/WinRAR/UnRAR.exe\" x -o+ \"/d/Dev/cs/projects/AbilityCashCli/.temp/ЗП 20260420.rar\" \"/d/Dev/cs/projects/AbilityCashCli/.temp/_extracted/\")",
+      "Bash(cp \"/d/Dev/cs/projects/AbilityCashCli/.temp/_extracted/Реестр начислений_00000CYCBP_1.xls\" /tmp/reestr1.xls)",
+      "Bash(cp \"/d/Dev/cs/projects/AbilityCashCli/.temp/_extracted/Реестр начислений_00000CYCBP_4.xls\" /tmp/reestr4.xls)",
+      "Bash(ls -la /tmp/reestr*.xls)",
+      "Read(//tmp/**)",
+      "Bash(xxd)"
     ]
   }
 }

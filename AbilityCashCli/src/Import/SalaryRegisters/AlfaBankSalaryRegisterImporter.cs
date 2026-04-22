@@ -12,6 +12,7 @@ public sealed class AlfaBankSalaryRegisterImporter : IImporter
     };
 
     private static readonly Regex QuotedText = new("[\"«]([^\"»]+)[\"»]", RegexOptions.Compiled);
+    private static readonly Regex WhitespaceRun = new(@"\s+", RegexOptions.Compiled);
 
     private readonly PersonNameNormalizer _nameNormalizer;
 
@@ -101,13 +102,25 @@ public sealed class AlfaBankSalaryRegisterImporter : IImporter
     {
         for (var c = 0; c < row.Length; c++)
         {
-            var s = NormalizeString(row[c]);
+            var s = NormalizeHeaderCell(row[c]);
             if (string.IsNullOrEmpty(s)) continue;
-            if (string.Equals(s, marker, StringComparison.OrdinalIgnoreCase))
+            if (s.StartsWith(marker, StringComparison.OrdinalIgnoreCase))
                 return c;
         }
         return -1;
     }
+
+    private static string NormalizeHeaderCell(object? value)
+    {
+        var s = NormalizeString(value);
+        return string.IsNullOrEmpty(s) ? s : WhitespaceRun.Replace(s, " ");
+    }
+
+    private static bool MatchesMarker(string cell, string marker) =>
+        string.Equals(StripTrailingColon(cell), marker, StringComparison.OrdinalIgnoreCase);
+
+    private static string StripTrailingColon(string s) =>
+        s.EndsWith(':') ? s[..^1].TrimEnd() : s;
 
     private static string? FindValueAfterMarker(List<object?[]> rows, string marker, int maxRowExclusive)
     {
@@ -116,9 +129,9 @@ public sealed class AlfaBankSalaryRegisterImporter : IImporter
             var row = rows[r];
             for (var c = 0; c < row.Length; c++)
             {
-                var s = NormalizeString(row[c]);
+                var s = NormalizeHeaderCell(row[c]);
                 if (string.IsNullOrEmpty(s)) continue;
-                if (!string.Equals(s, marker, StringComparison.OrdinalIgnoreCase)) continue;
+                if (!MatchesMarker(s, marker)) continue;
                 for (var c2 = c + 1; c2 < row.Length; c2++)
                 {
                     var v = NormalizeString(row[c2]);
@@ -136,9 +149,9 @@ public sealed class AlfaBankSalaryRegisterImporter : IImporter
             var row = rows[r];
             for (var c = 0; c < row.Length; c++)
             {
-                var s = NormalizeString(row[c]);
+                var s = NormalizeHeaderCell(row[c]);
                 if (string.IsNullOrEmpty(s)) continue;
-                if (!string.Equals(s, marker, StringComparison.OrdinalIgnoreCase)) continue;
+                if (!MatchesMarker(s, marker)) continue;
                 for (var c2 = c + 1; c2 < row.Length; c2++)
                 {
                     if (row[c2] is null) continue;

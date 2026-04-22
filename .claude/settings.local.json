@@ -40,7 +40,8 @@
       "Bash(cp \"/d/Dev/cs/projects/AbilityCashCli/.temp/_extracted/Реестр начислений_00000CYCBP_4.xls\" /tmp/reestr4.xls)",
       "Bash(ls -la /tmp/reestr*.xls)",
       "Read(//tmp/**)",
-      "Bash(xxd)"
+      "Bash(xxd)",
+      "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\('D:\\\\Dev\\\\cs\\\\projects\\\\AbilityCashCli\\\\.temp\\\\_extracted\\\\Реестр начислений_00000CYCBP_1.xls'\\); $enc = [System.Text.Encoding]::GetEncoding\\(1251\\); $text = $enc.GetString\\($bytes\\); $matches = [regex]::Matches\\($text, '[А-ЯЁа-яё№\\\\w\\\\s]{4,80}'\\); $matches | Select-Object -First 100 | ForEach-Object { $_.Value })"
     ]
   }
 }

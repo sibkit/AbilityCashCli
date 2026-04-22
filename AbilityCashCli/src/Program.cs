@@ -114,7 +114,8 @@ static async Task<int> RunImportAsync(AppConfig config, IReadOnlyList<string> fi
     IImportArchiver archiver = new FolderImportArchiver(Path.Combine(AppContext.BaseDirectory, ArchiveFolderName));
 
     var report = new ImportReportWriter(Console.Out, useConsoleColors: true);
-    var runner = new BulkImportRunner(db, router, archiver, report);
+    var balances = new AccountBalanceRecalculator(db);
+    var runner = new BulkImportRunner(db, router, archiver, report, balances);
     await runner.RunAsync(files);
     return 0;
 }

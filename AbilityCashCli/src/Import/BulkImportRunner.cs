@@ -9,17 +9,20 @@ public sealed class BulkImportRunner
     private readonly IImportRouter _router;
     private readonly IImportArchiver _archiver;
     private readonly ImportReportWriter _report;
+    private readonly AccountBalanceRecalculator _balances;
 
     public BulkImportRunner(
         AppDbContext db,
         IImportRouter router,
         IImportArchiver archiver,
-        ImportReportWriter report)
+        ImportReportWriter report,
+        AccountBalanceRecalculator balances)
     {
         _db = db;
         _router = router;
         _archiver = archiver;
         _report = report;
+        _balances = balances;
     }
 
     public async Task<Summary> RunAsync(IEnumerable<string> files, CancellationToken ct = default)
@@ -73,6 +76,9 @@ public sealed class BulkImportRunner
 
         if (erroredFiles.Count == 0)
         {
+            if (imported.Count > 0)
+                await _balances.RecalculateAsync(ct);
+
             await trx.CommitAsync(ct);
             foreach (var p in imported)
             {
